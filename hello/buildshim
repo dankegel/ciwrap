@@ -1,0 +1,125 @@
+#!/bin/sh
+# Build shim for hello, a program that uses Gnu Automake as a build system
+#
+# Build shims are short, stupid, useable, and readable.
+# They provide a uniform interface to building/testing/packaging projects,
+# whether they are built with make, ant, or need no compilation at all.
+# They are meant to be run by buildbot, jenkins, or developers interchangably.
+
+set -e
+set -x
+
+# Parse the version number of this product from the source tree
+get_version() {
+    # Only look at top few lines
+    # Remove comments
+    # Reformat so there is exactly one line per macro call
+    # Grab just the call to AC_INIT
+    # delete everything up to and including the open paren
+    # print out the second [parameter],
+    # and remove brackets, commas, and spaces
+
+    head -n 20 configure.ac |
+        sed 's/dnl.*//' |
+        tr '\012)' ' \012' |
+        grep AC_INIT |
+        sed 's/.*(//' |
+        sed 's/\[[^]]*\]//' |
+        sed 's/\].*//' |
+        tr -d '][, '
+}
+version=`get_version`
+pkgname=hello
+echo "This is $pkgname version $version"
+
+# This may need adjusting for non-x86 architecuters
+ncores=`grep -c processor /proc/cpuinfo || echo 1`
+parallel="-j$ncores -l$ncores"
+# If ccache is configured, use it.
+if test "$CCACHE_DIR"
+then
+    CC="ccache gcc"
+    CXX="ccache g++"
+else
+    CC=gcc
+    CXX=g++
+fi
+export CC
+export CXX
+
+do_install_deps() {
+    sudo apt-get -y install autopoint texinfo
+
+    if ! test -x /usr/local/bin/fpm
+    then
+        sudo apt-get install -y build-essential libopenssl-ruby ruby-dev rubygems
+        # Need to set umask, or /var/lib/gems won't be world-readable
+        # See https://bugs.launchpad.net/ubuntu/+source/rubygems/+bug/1023836
+        umask 022
+        sudo gem install fpm
+        if ! test -x /usr/local/bin/fpm
+        then
+            if ! test -x /var/lib/gems/*/bin/fpm
+            then
+                echo fpm failed to install
+                exit 1
+            fi
+            sudo ln -s /var/lib/gems/*/bin/fpm /usr/local/bin/fpm
+        fi
+    fi
+}
+
+do_configure() {
+    ./bootstrap
+    ./configure
+}
+
+do_compile() {
+    make $parallel
+}
+
+do_check() {
+    make $parallel check
+}
+
+do_package() {
+    # In this example, we pretend Hello is a proprietary app that needs
+    # to be built once as a portable binary, and packaged twice, once
+    # as .deb and once as .rpm.
+    # There are several ways to improve portability of Linux binaries;
+    # the easiest one is to compile on an oldish Linux to make sure the
+    # glibc you statically link to is no newer than on the target systems.
+    # You may also want to use the LSB Application Checker to check for 
+    # portability problems.
+
+    DESTDIR=../tmp/fpm-installroot.$$
+    mkdir -p $DESTDIR
+    DESTDIR=`cd $DESTDIR; pwd`
+    make install DESTDIR=$DESTDIR
+    rm -f ${pkgname}*.deb || true
+    fpm -s dir -t deb -n $pkgname -v $version -C $DESTDIR usr
+    rm -f ${pkgname}*.rpm || true
+    fpm -s dir -t rpm -n $pkgname -v $version -C $DESTDIR usr
+    rm -rf $DESTDIR
+}
+
+do_uninstall_deps() {
+    if test -x /usr/local/bin/fpm
+    then
+        sudo gem uninstall fpm -x
+        sudo rm -f /usr/local/bin/fpm
+    fi
+
+    sudo apt-get autoremove -y --purge autopoint texinfo
+}
+
+case $1 in
+install_deps)   do_install_deps ;;
+configure)      do_configure ;;
+compile)        do_compile ;;
+check)          do_check ;;
+package)        do_package ;;
+uninstall_deps) do_uninstall_deps ;;
+steps)          echo "install_deps configure compile check package uninstall_deps";;
+*)              echo "Unknown step $1" ;;
+esac

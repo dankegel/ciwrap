@@ -1,0 +1,102 @@
+#!/bin/sh
+set -x
+
+usage() {
+    echo "usage: lxc-ssh NAME [COMMAND ...]"
+}
+
+help() {
+    usage
+    echo
+    echo "Runs ssh to connect to the given container"
+    echo
+    echo "Arguments:"
+    echo "NAME        : name of the original container.  Replaced with the IP address of the container."
+    echo "COMMAND     : optional command to pass to ssh"
+}
+
+get_ip()
+{
+    # Get init's PID
+    PID=$(sudo lxc-info -n $1 -p | awk '{print $2}')
+    [ "$PID" = "-1" ] && return 1
+
+    # Get some unique path
+    DST=$(sudo mktemp -u --tmpdir=/run/netns/)
+    NAME=$(basename $DST)
+
+    # Prepare the /run/netns entry for "ip netns"
+    sudo mkdir -p /run/netns
+    sudo ln -s /proc/$PID/ns/net $DST
+
+    # Grab all the public globally routed IPv4 and IPv6 addresses
+    (sudo ip netns exec $NAME ip -4 addr show scope global && \
+     sudo ip netns exec $NAME ip -6 addr show scope global) | grep inet | while read line; do
+        ip=$(echo $line | awk '{print $2}' | cut -d '/' -f1)
+        echo "$ip"
+    done
+
+    sudo rm $DST
+}
+
+do_ssh()
+{
+    sudo lxc-wait -s RUNNING -n $LXC_NAME
+
+    # Use get_ip to wait for container's network to be up
+    # and to obtain the ip address, then we can ssh to the lxc.
+    TRIES=60
+    FAILED=1
+
+    # Repeatedly try to connect over SSH until we either succeed
+    # or time out.
+    for i in $(seq 1 $TRIES); do
+        # We call get_ip inside the loop to ensure the correct ip
+        # is retrieved even in the case the DHCP ip assignment
+        # changes during the process.
+        IP_ADDRESS=$(get_ip $LXC_NAME)
+        if [ -z "$IP_ADDRESS" ]; then
+            sleep 1
+            continue
+        fi
+
+        # Iterate through all the addresses (if multiple)
+        for ip in $IP_ADDRESS; do
+            whoami
+            ssh -o StrictHostKeyChecking=no \
+                -o UserKnownHostsFile=/dev/null \
+                $SSH_OPTS \
+                $IP_ADDRESS "$@"
+            if [ ! 255 -eq $? ]; then
+                # If ssh returns 255 then its connection failed.
+                # Anything else is either success (status 0) or a
+                # failure from whatever we ran over the SSH connection.
+                # In those cases we want to stop looping, so we break
+                # here
+
+                FAILED=0
+                break;
+            fi
+        done
+
+        if [ "$FAILED" = "0" ]; then
+            break
+        fi
+        sleep 1
+    done
+
+    if [ "$FAILED" = "1" ]; then
+        echo "could not get IP address - aborting." >&2
+    fi
+}
+
+if test "$1" = ""
+then
+    usage
+    exit 1
+fi
+
+LXC_NAME=$1
+shift
+SSH_OPTS="-t"
+do_ssh "$@"
