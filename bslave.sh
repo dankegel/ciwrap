@@ -56,7 +56,7 @@ cygwin)
     if test $BUILDUSER = SYSTEM
     then
         # FIXME: Pick the user that owns $0
-        BUILDUSER=dank
+        BUILDUSER=buildbot
         BUILDUSERHOME=`eval echo ~$BUILDUSER`
     fi
     ;;
