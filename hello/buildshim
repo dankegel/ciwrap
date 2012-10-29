@@ -32,11 +32,36 @@ version=`get_version`
 pkgname=hello
 echo "This is $pkgname version $version"
 
+# Detect OS
+case "`uname -s`" in
+Linux) 
+    case "`lsb_release -ds`" in
+    "Ubuntu 10.04"*) _os=ubu10;;
+    "Ubuntu 12.04"*) _os=ubu12;;
+    *) abort "unrecognized linux";;
+    esac
+    ;;
+Darwin) abort "don't support mac yet";;
+CYGWIN*WOW64) _os=cygwin;;
+CYGWIN*)      _os=cygwin;;
+*) abort "unrecognized os";;
+esac
+
+# Apply workarounds
+case $_os in
+cygwin) PATH=/bin:$PATH ;;  # no idea why, but configure was finding Windows' find.exe!
+esac
+
+abort() {
+    echo fatal error: $1
+    exit 1
+}
+
 # This may need adjusting for non-x86 architecuters
 ncores=`grep -c processor /proc/cpuinfo || echo 1`
 parallel="-j$ncores -l$ncores"
 # If ccache is configured, use it.
-if test "$CCACHE_DIR"
+if ccache -V && test "$CCACHE_DIR"
 then
     CC="ccache gcc"
     CXX="ccache g++"
@@ -48,25 +73,33 @@ export CC
 export CXX
 
 do_install_deps() {
-    sudo apt-get -y install autopoint texinfo
+    case $_os in
+    cygwin)
+        apt-cyg install gettext-devel
+        ;;
+    ubu*)
+        sudo apt-get -y install autopoint texinfo
 
-    if ! test -x /usr/local/bin/fpm
-    then
-        sudo apt-get install -y build-essential libopenssl-ruby ruby-dev rubygems
-        # Need to set umask, or /var/lib/gems won't be world-readable
-        # See https://bugs.launchpad.net/ubuntu/+source/rubygems/+bug/1023836
-        umask 022
-        sudo gem install fpm
         if ! test -x /usr/local/bin/fpm
         then
-            if ! test -x /var/lib/gems/*/bin/fpm
+            sudo apt-get install -y build-essential libopenssl-ruby ruby-dev rubygems
+            # Need to set umask, or /var/lib/gems won't be world-readable
+            # See https://bugs.launchpad.net/ubuntu/+source/rubygems/+bug/1023836
+            umask 022
+            sudo gem install fpm
+            if ! test -x /usr/local/bin/fpm
             then
-                echo fpm failed to install
-                exit 1
+                if ! test -x /var/lib/gems/*/bin/fpm
+                then
+                    echo fpm failed to install
+                    exit 1
+                fi
+                sudo ln -s /var/lib/gems/*/bin/fpm /usr/local/bin/fpm
             fi
-            sudo ln -s /var/lib/gems/*/bin/fpm /usr/local/bin/fpm
         fi
-    fi
+        ;;
+    *) abort "Unsupported OS";;
+    esac
 }
 
 do_configure() {
@@ -84,33 +117,44 @@ do_check() {
 
 do_package() {
     # In this example, we pretend Hello is a proprietary app that needs
-    # to be built once as a portable binary, and packaged twice, once
-    # as .deb and once as .rpm.
-    # There are several ways to improve portability of Linux binaries;
-    # the easiest one is to compile on an oldish Linux to make sure the
-    # glibc you statically link to is no newer than on the target systems.
-    # You may also want to use the LSB Application Checker to check for 
-    # portability problems.
+    # to be built once as a portable binary, and packaged multiple times,
+    # once in each supported package format.
 
     DESTDIR=../tmp/fpm-installroot.$$
     mkdir -p $DESTDIR
     DESTDIR=`cd $DESTDIR; pwd`
     make install DESTDIR=$DESTDIR
-    rm -f ${pkgname}*.deb || true
-    fpm -s dir -t deb -n $pkgname -v $version -C $DESTDIR usr
-    rm -f ${pkgname}*.rpm || true
-    fpm -s dir -t rpm -n $pkgname -v $version -C $DESTDIR usr
-    rm -rf $DESTDIR
+
+    case $_os in
+    cygwin) echo "Here we would generate a cygwin package, or something :-)"
+        ;;
+    ubu*)
+        # There are several ways to improve portability of Linux binaries;
+        # the easiest one is to compile on an oldish Linux to make sure the
+        # glibc you statically link to is no newer than on the target systems.
+        # You may also want to use the LSB Application Checker to check for 
+        # portability problems.
+        rm -f ${pkgname}*.deb || true
+        fpm -s dir -t deb -n $pkgname -v $version -C $DESTDIR usr
+        rm -f ${pkgname}*.rpm || true
+        fpm -s dir -t rpm -n $pkgname -v $version -C $DESTDIR usr
+        rm -rf $DESTDIR
+        ;;
+    esac
 }
 
 do_uninstall_deps() {
-    if test -x /usr/local/bin/fpm
-    then
-        sudo gem uninstall fpm -x
-        sudo rm -f /usr/local/bin/fpm
-    fi
+    case $_os in
+    ubu*)
+        if test -x /usr/local/bin/fpm
+        then
+            sudo gem uninstall fpm -x
+            sudo rm -f /usr/local/bin/fpm
+        fi
 
-    sudo apt-get autoremove -y --purge autopoint texinfo
+        sudo apt-get autoremove -y --purge autopoint texinfo
+        ;;
+    esac
 }
 
 case $1 in

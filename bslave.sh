@@ -112,7 +112,7 @@ install_prereqs() {
             sudo apt-get install -y $GIT build-essential ccache wget;;
     ubu*) GIT=git-core;
             sudo apt-get install -y $GIT build-essential ccache wget;;
-    cygwin) echo "FIXME" ;;
+    cygwin) apt-cyg install make ccache;;
     *) abort "unknown OS";;
     esac
 
