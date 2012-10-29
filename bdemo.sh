@@ -7,7 +7,7 @@
 set -e
 set -x
 
-projects="pyflakes"  # hello zlib
+projects="pyflakes hello zlib"
 
 install_and_start()
 {
