@@ -33,7 +33,7 @@ cygverb=$verb
 
 case "$verb" in
 "") echo usage: $0 'start|stop|status'; exit 0;;
-list) list ;;
+list) list ; exit 0;;
 status) cygverb=query ;;
 esac
 
