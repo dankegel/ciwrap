@@ -5,6 +5,8 @@
 # They provide a uniform interface to building/testing/packaging projects,
 # whether they are built with make, ant, or need no compilation at all.
 # They are meant to be run by buildbot, jenkins, or developers interchangably.
+set -e
+set -x
 
 do_check() {
     trial pyflakes
