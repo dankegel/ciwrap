@@ -16,7 +16,9 @@ case "$OS" in
 Windows_NT)
     WSRC=`cygpath -w $SRC`
     # Work around http://www.cmake.org/Bug/print_bug_page.php?bug_id=13131
-    unset TMP TEMP
+    unset TMP TEMP tmp temp
+    export TMP=c:\\windows\\temp
+    export TEMP=c:\\windows\\temp
     ;;
 esac
 
@@ -37,7 +39,23 @@ get_version() {
 }
 version=`get_version`
 pkgname=zlib
-echo "This is $pkgname version $version"
+
+# Detect OS
+case "`uname -s`" in
+Linux) 
+    case "`lsb_release -ds`" in
+    "Ubuntu 10.04"*) _os=ubu10;;
+    "Ubuntu 12.04"*) _os=ubu12;;
+    *) abort "unrecognized linux";;
+    esac
+    ;;
+Darwin) abort "don't support mac yet";;
+CYGWIN*WOW64) _os=cygwin;;
+CYGWIN*)      _os=cygwin;;
+*) abort "unrecognized os";;
+esac
+
+echo "This is $pkgname version $version, building on $_os"
 
 # This may need adjusting for non-x86 architecuters
 ncores=`grep -c processor /proc/cpuinfo || echo 1`
@@ -66,6 +84,7 @@ esac
 do_install_deps() {
     case $_os in
     cygwin)
+        apt-cyg install cmake
         ;;
     ubu*)
         sudo apt-get -y install cmake
@@ -151,11 +170,11 @@ do_package() {
     DESTDIR=../tmp/fpm-installroot.$$
     mkdir -p $DESTDIR
     DESTDIR=`cd $DESTDIR; pwd`
-    make install DESTDIR=$DESTDIR
     case $_os in
     cygwin) echo "Here we would generate a .msi package, or something :-)"
         ;;
     ubu*)
+        make install DESTDIR=$DESTDIR
         rm -f ${pkgname}*.deb || true
         fpm -s dir -t deb -n $pkgname -v $version -C $DESTDIR usr
         rm -f ${pkgname}*.rpm || true
