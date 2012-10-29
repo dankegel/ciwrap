@@ -42,38 +42,53 @@ echo "This is $pkgname version $version"
 # This may need adjusting for non-x86 architecuters
 ncores=`grep -c processor /proc/cpuinfo || echo 1`
 parallel="-j$ncores -l$ncores"
-# If ccache is configured, use it.
-if ccache -V && test "$CCACHE_DIR"
-then
-    CC="ccache gcc"
-    CXX="ccache g++"
-else
-    CC=gcc
-    CXX=g++
-fi
-export CC
-export CXX
+
+case "$OS" in
+Windows_NT)
+    # On Windows, we're building with Visual C++, which doesn't support ccache.
+    unset CCACHE_DIR
+    ;;
+*)
+    # If ccache is configured, use it.
+    if ccache -V && test -d "$CCACHE_DIR"
+    then
+        CC="ccache gcc"
+        CXX="ccache g++"
+    else
+        CC=gcc
+        CXX=g++
+    fi
+    export CC
+    export CXX
+    ;;
+esac
 
 do_install_deps() {
-    sudo apt-get -y install cmake
+    case $_os in
+    cygwin)
+        ;;
+    ubu*)
+        sudo apt-get -y install cmake
 
-    if ! test -x /usr/local/bin/fpm
-    then
-        sudo apt-get install -y build-essential libopenssl-ruby ruby-dev rubygems
-        # Need to set umask, or /var/lib/gems won't be world-readable
-        # See https://bugs.launchpad.net/ubuntu/+source/rubygems/+bug/1023836
-        umask 022
-        sudo gem install fpm
         if ! test -x /usr/local/bin/fpm
         then
-            if ! test -x /var/lib/gems/*/bin/fpm
+            sudo apt-get install -y build-essential libopenssl-ruby ruby-dev rubygems
+            # Need to set umask, or /var/lib/gems won't be world-readable
+            # See https://bugs.launchpad.net/ubuntu/+source/rubygems/+bug/1023836
+            umask 022
+            sudo gem install fpm
+            if ! test -x /usr/local/bin/fpm
             then
-                echo fpm failed to install
-                exit 1
+                if ! test -x /var/lib/gems/*/bin/fpm
+                then
+                    echo fpm failed to install
+                    exit 1
+                fi
+                sudo ln -s /var/lib/gems/*/bin/fpm /usr/local/bin/fpm
             fi
-            sudo ln -s /var/lib/gems/*/bin/fpm /usr/local/bin/fpm
         fi
-    fi
+        ;;
+    esac
 }
 
 do_configure() {
@@ -123,11 +138,10 @@ do_check() {
 }
 
 do_package() {
-    cd ../tmp/build-$pkgname
+    # In this example, we pretend zlib is a proprietary library that needs
+    # to be built once as a portable shared library, and packaged multiple times,
+    # once in each supported package format.
 
-    # In this example, we pretend zlib is a proprietary app that needs
-    # to be built once as a portable binary, and packaged twice, once
-    # as .deb and once as .rpm.
     # There are several ways to improve portability of Linux binaries;
     # the easiest one is to compile on an oldish Linux to make sure the
     # glibc you statically link to is no newer than on the target systems.
@@ -138,21 +152,31 @@ do_package() {
     mkdir -p $DESTDIR
     DESTDIR=`cd $DESTDIR; pwd`
     make install DESTDIR=$DESTDIR
-    rm -f ${pkgname}*.deb || true
-    fpm -s dir -t deb -n $pkgname -v $version -C $DESTDIR usr
-    rm -f ${pkgname}*.rpm || true
-    fpm -s dir -t rpm -n $pkgname -v $version -C $DESTDIR usr
-    rm -rf $DESTDIR
+    case $_os in
+    cygwin) echo "Here we would generate a .msi package, or something :-)"
+        ;;
+    ubu*)
+        rm -f ${pkgname}*.deb || true
+        fpm -s dir -t deb -n $pkgname -v $version -C $DESTDIR usr
+        rm -f ${pkgname}*.rpm || true
+        fpm -s dir -t rpm -n $pkgname -v $version -C $DESTDIR usr
+        rm -rf $DESTDIR
+        ;;
+    esac
 }
 
 do_uninstall_deps() {
-    if test -x /usr/local/bin/fpm
-    then
-        sudo gem uninstall fpm -x
-        sudo rm -f /usr/local/bin/fpm
-    fi
+    case $_os in
+    ubu*)
+        if test -x /usr/local/bin/fpm
+        then
+            sudo gem uninstall fpm -x
+            sudo rm -f /usr/local/bin/fpm
+        fi
 
-    sudo apt-get autoremove -y --purge cmake
+        sudo apt-get autoremove -y --purge cmake
+        ;;
+    esac
 }
 
 case $1 in
