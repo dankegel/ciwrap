@@ -1,5 +1,3 @@
-set
 mkdir btmp
-pushd btmp
+cd btmp
 cmake .. -G "Visual Studio 10"
-popd
