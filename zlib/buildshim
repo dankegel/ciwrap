@@ -43,7 +43,7 @@ echo "This is $pkgname version $version"
 ncores=`grep -c processor /proc/cpuinfo || echo 1`
 parallel="-j$ncores -l$ncores"
 # If ccache is configured, use it.
-if test "$CCACHE_DIR"
+if ccache -V && test "$CCACHE_DIR"
 then
     CC="ccache gcc"
     CXX="ccache g++"
