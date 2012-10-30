@@ -167,7 +167,10 @@ do_package() {
     # You may also want to use the LSB Application Checker to check for 
     # portability problems.
 
-    DESTDIR=../tmp/fpm-installroot.$$
+    cd btmp
+    DESTDIR=../../tmp/fpm-installroot.$$
+    # Clean up empty directories from failed builds
+    rmdir ../../fpm-installroot* || true
     mkdir -p $DESTDIR
     DESTDIR=`cd $DESTDIR; pwd`
     case $_os in
