@@ -194,7 +194,9 @@ Buildbot's master doesn't work on cygwin (some sqlite problem), but that's
 ok, we'll just point the Windows buildslave at the Linux buildmaster you
 set up previously.
 
-Here's how to get this example going on cygwin:
+Here's how to get this example going on cygwin.  (You'll probably
+want to run Cygwin Terminal as an administrator, and either log in as user
+buildbot or change the kludgy BUILDUSER=buildbot line in *.sh.)
 
 1) download http://cygwin.com/setup.exe to c:\cygpkgs\setup.exe
 
@@ -276,8 +278,9 @@ The zlib example uses Visual C++ Express 2010, so before trying that, do:
 
 1) Download and install Visual C++ Express 2010 from microsoft.com/visualstudio
 
-2) As a sanity check, get a tempororary copy of the zlib source tree
-   and verify that the example's helper batch files properly compile it.
+2) As a sanity check, you might want to get a tempororary copy of the zlib 
+   source tree and verify that the example's helper batch files properly 
+   compile it.
    In a Cygwin terminal, do
       cd ~
       apt-cyg install cmake
@@ -287,10 +290,16 @@ The zlib example uses Visual C++ Express 2010, so before trying that, do:
    Then in a fresh CMD window (NOT in cmd inside the cygwin terminal!), do
       cd \cygwin\home\YOURUSERNAME\zlib-1.2.7
       ..\ciwrap\zlib\bconfigure
+      cd ..
       ..\ciwrap\zlib\bcompile
+      cd ..
       ..\ciwrap\zlib\bcheck
+      cd ..
    and verify that btmp\Release has binaries in it, and the tests passed. 
    Exit out of this cmd window.
+   (It's a little lame that bconfigure.bat et al change the current
+   directory, but making cd or popd the last command in the batch file would
+   reset the exit status to zero, preventing buildbot from sensing errors.)
 
 3) Remove the temporary zlib source tree and the build.
       cd ~
