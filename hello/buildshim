@@ -36,8 +36,8 @@ echo "This is $pkgname version $version"
 case "`uname -s`" in
 Linux)
     case "`lsb_release -ds`" in
-    "Ubuntu 10.04"*) _os=ubu10;;
-    "Ubuntu 12.04"*) _os=ubu12;;
+    "Ubuntu 10.04"*) _os=ubu1004;;
+    "Ubuntu 12.04"*) _os=ubu1204;;
     *) abort "unrecognized linux";;
     esac
     ;;
