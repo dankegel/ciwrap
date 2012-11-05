@@ -72,10 +72,11 @@ http://www.mail-archive.com/lxc-users@lists.sourceforge.net/msg04027.html )
 
 In this example, 
 - Each project has its own buildbot master and slaves
-- Each project has a directory containing at least two things:
+- Each project has a directory containing at least three things:
   a) a script named 'buildshim' which takes args like 'compile' and turns 
   them into 'make', etc.
   b) the master.cfg for the project's buildbot master
+  c) the config.json listing the slaves and branches to build
 - For ease of keeping config in git, Buildbot state files are segregated 
   into a separate directory
 - A common python class is used to make the master.cfg files shorter and
@@ -98,12 +99,15 @@ bservice.sh       - tell system service manager to start or stop all buildbots
 bvslave-lxc.sh    - administer virtual lxc buildslaves for a project
 bslave.sh         - administer buildslaves for a project
 pyflakes/master.cfg - buildbot config for pyflakes project; uses buildshim
+pyflakes/config.json- list of branches to build, and slaves to build them on
 pyflakes/buildshim  - standalone build steps for pyflakes
 pyflakes/slot.txt   - offset from 8010 for the web status page for pyflakes
 hello/master.cfg    - buildbot config for pyflakes project; uses buildshim
+hello/config.json   - list of branches to build, and slaves to build them on
 hello/buildshim     - standalone build steps for hello
 hello/slot.txt      - offset from 8010 for the web status page for hello
 zlib/master.cfg     - buildbot config for zlib project; uses buildshim
+zlib/config.json    - list of branches to build, and slaves to build them on
 zlib/buildshim      - standalone build steps for zlib (needs helpers on windows)
 zlib/slot.txt       - offset from 8010 for the web status page for zlib
 zlib/bcheck.bat     - standalone helper to invoke tests via visual studio
