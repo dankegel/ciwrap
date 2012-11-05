@@ -109,9 +109,9 @@ install_prereqs() {
     # Commonly needed packages we want on the slave but that are not required by buildbot itself.
     case $_os in
     ubu12*) GIT=git;
-            sudo apt-get install -y $GIT build-essential ccache wget;;
+            sudo apt-get install -y $GIT devscripts build-essential ccache wget;;
     ubu*) GIT=git-core;
-            sudo apt-get install -y $GIT build-essential ccache wget;;
+            sudo apt-get install -y $GIT devscripts build-essential ccache wget;;
     cygwin) apt-cyg install make ccache;;
     *) abort "unknown OS";;
     esac
