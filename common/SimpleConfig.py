@@ -117,17 +117,26 @@ class SimpleConfig(dict):
         slaveconfigs = sf["slaves"];
         branchnames = []
         slavenames = []
+        operatingsystems = []
+        osbranch2slavenames = {}
         for slaveconfig in slaveconfigs:
             sname = slaveconfig["name"].encode('ascii','ignore')
             sbranch = slaveconfig["branch"].encode('ascii','ignore')
+            sos = slaveconfig["os"].encode('ascii','ignore')
             if sname not in self._slavehash:
                 s = BuildSlave(sname, self.slavepass)
                 self['slaves'].append(s)
                 self._slavehash[sname] = s
-            if sname not in slavenames:
-                slavenames.append(sname)
+            
+	    osbranch = sos+'-'+sbranch
+            if osbranch not in osbranch2slavenames:
+                osbranch2slavenames[osbranch] = []
+            if sname not in osbranch2slavenames[osbranch]:
+                osbranch2slavenames[osbranch].append(sname)
             if sbranch not in branchnames:
                 branchnames.append(sbranch)
+            if sos not in operatingsystems:
+                operatingsystems.append(sos)
 
         ####### CHANGESOURCES
         # It's a git git git git git world
@@ -141,36 +150,38 @@ class SimpleConfig(dict):
         for step in ["install_deps", "configure", "compile", "check", "package", "uninstall_deps"]:
             factory.addStep(ShellCommand(command=["../../buildshim", step], description=step))
         # Give each branch its own builder to make the waterfall easier to read
-        for branch in branchnames:
-            buildername = name+'-'+branch
+        for osbranch in osbranch2slavenames:
             self['builders'].append(
-                BuilderConfig(name=buildername,
-                  slavenames=slavenames,
+                BuilderConfig(name=name+'-'+osbranch,
+                  slavenames=osbranch2slavenames[osbranch],
                   factory=factory))
 
         ####### SCHEDULERS
-        for branch in branchnames:
-            buildername = name+'-'+branch
-            self['schedulers'].append(
-                SingleBranchScheduler(
-                    name=buildername,
-                    change_filter=filter.ChangeFilter(branch=branch),
-                    treeStableTimer=None,
-                    builderNames=[buildername]))
-            self['schedulers'].append(
-                ForceScheduler(
-                    name=buildername+"force",
-                    builderNames=[buildername],
-                    branch=FixedParameter(name="branch", default=branch),
-                    # will generate nothing in the form, but revision, repository,
-                    # and project are needed by buildbot scheduling system so we
-                    # need to pass a value ("")
-                    revision=FixedParameter(name="revision", default=""),
-                    repository=FixedParameter(name="repository", default=""),
-                    project=FixedParameter(name="project", default=""),
-                    properties=[
-                        StringParameter(name="pull_url",
-                            label="experimental: optional git pull url:<br>",
-                            default="", size=80)
-                    ]
-                ))
+        for sos in operatingsystems:
+            for branch in branchnames:
+	        osbranch = sos+'-'+sbranch
+                if osbranch in osbranch2slavenames:
+                    buildername = name+'-'+osbranch
+                    self['schedulers'].append(
+                        SingleBranchScheduler(
+                            name=buildername,
+                            change_filter=filter.ChangeFilter(branch=branch),
+                            treeStableTimer=None,
+                            builderNames=[buildername]))
+                    self['schedulers'].append(
+                        ForceScheduler(
+                            name=buildername+"force",
+                            builderNames=[buildername],
+                            branch=FixedParameter(name="branch", default=branch),
+                            # will generate nothing in the form, but revision, repository,
+                            # and project are needed by buildbot scheduling system so we
+                            # need to pass a value ("")
+                            revision=FixedParameter(name="revision", default=""),
+                            repository=FixedParameter(name="repository", default=""),
+                            project=FixedParameter(name="project", default=""),
+                            properties=[
+                                StringParameter(name="pull_url",
+                                    label="experimental: optional git pull url:<br>",
+                                    default="", size=80)
+                            ]
+                        ))

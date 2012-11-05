@@ -1,6 +1,6 @@
 {
     "slaves" : [
-        { "name":"hello-e8400", "branch":"master" },
-        { "name":"hello-i7",    "branch":"master" }
+        { "name":"hello-e8400", "os":"win7",    "branch":"master" },
+        { "name":"hello-i7",    "os":"ubu1204", "branch":"master" }
     ]
 }
