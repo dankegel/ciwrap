@@ -63,6 +63,13 @@ Finally, it also shows one way to use Linux Containers to isolate builds --
 and, since that requires a tiny patch to buildbot, the example also shows
 how to build and install buildbot from source automatically.
 
+You might want to run this in a virtual machine, since it is
+rather free with root privileges, and does things like install
+packages without asking.  (I recommend using vmware player with an
+ubuntu 12.04 guest.  virtualbox also works, except that running ephemeral
+lxc containers inside virtualbox seems to be broken, see
+http://www.mail-archive.com/lxc-users@lists.sourceforge.net/msg04027.html )
+
 In this example, 
 - Each project has its own buildbot master and slaves
 - Each project has a directory containing at least two things:
