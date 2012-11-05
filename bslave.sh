@@ -23,7 +23,7 @@ SRC=`cd $SRC; pwd`
 
 # Detect OS
 case "`uname -s`" in
-Linux) 
+Linux)
     case "`lsb_release -ds`" in
     "Ubuntu 10.04"*) _os=ubu1004;;
     "Ubuntu 12.04"*) _os=ubu1204;;
@@ -60,13 +60,13 @@ cygwin)
         BUILDUSERHOME=`eval echo ~$BUILDUSER`
     fi
     ;;
-esac 
+esac
 
 # Working area; holds all the state of the installed buildbot slave instances
 TOP=$BUILDUSERHOME/slave-state
 
 # same password for all slaves currently
-SLAVE_PASSWD=`awk '/slavepass/ {print $3}' $BUILDUSERHOME/myconfig.json | tr -d '[",]' ` 
+SLAVE_PASSWD=`awk '/slavepass/ {print $3}' $BUILDUSERHOME/myconfig.json | tr -d '[",]' `
 
 VIRTUAL_ENV=$TOP/$_os
 
@@ -75,7 +75,7 @@ HOSTNAME=`hostname -s || hostname | tr -d '\015'`
 HOSTNAME=`echo $HOSTNAME | tr -d '\015'`
 echo HOSTNAME is xx${HOSTNAME}xx
 
-# Hostname of build master.  
+# Hostname of build master.
 # Only used when initializing slaves.
 # If not already set in environment, defaults to current machine for demo purposes.
 # FIXME: find some nicer way of doing this, so demo case is not so different from real case.
@@ -159,7 +159,7 @@ install_buildslave() {
     )
     if false
     then
-        # easy_install is usually sufficient; buildbot slave code changes 
+        # easy_install is usually sufficient; buildbot slave code changes
         # very slowly, no need to run latest.
         # But guess what?  It fails if buildbot.net is down.
         run_in_sandbox easy_install buildbot-slave

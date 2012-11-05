@@ -8,19 +8,19 @@ October 2012
 
 So, you're a software engineer setting up a continuous integration
 system for a bunch of related libraries and executables, written in a mix
-of languages, targeting several platforms, and you're considering Buildbot as 
+of languages, targeting several platforms, and you're considering Buildbot as
 your continuous integration tool.
-If you're having trouble coming up the Buildbot learning curve, you're not 
+If you're having trouble coming up the Buildbot learning curve, you're not
 alone! (See e.g. http://jacobian.org/writing/buildbot/ci-is-hard/ )
 
 Buildbot has a tutorial at http://buildbot.net/buildbot/docs/current/tutorial
 If you haven't stepped through it yet, go do so now.
 It's a useful introduction... but it only just barely scratches the surface.
 
-Buildbot's reference manual provides the missing details, but is challenging 
+Buildbot's reference manual provides the missing details, but is challenging
 to understand fully.  Nevertheless, new users should absolutely read it,
-and try to understand at least the key concepts before diving in.  At the 
-risk of oversimplifying, the barest minimum you need to know is: 
+and try to understand at least the key concepts before diving in.  At the
+risk of oversimplifying, the barest minimum you need to know is:
 - a Buildbot is ChangeSources + Schedulers + Builders + BuildFactories + Slaves
 - a ChangeSource watches e.g. a git repository and alerts Schedulers to changes
 - a Scheduler watches ChangeSources and the clock, decides when to run a Builder
@@ -70,14 +70,14 @@ ubuntu 12.04 guest.  virtualbox also works, except that running ephemeral
 lxc containers inside virtualbox seems to be broken, see
 http://www.mail-archive.com/lxc-users@lists.sourceforge.net/msg04027.html )
 
-In this example, 
+In this example,
 - Each project has its own buildbot master and slaves
 - Each project has a directory containing at least three things:
-  a) a script named 'buildshim' which takes args like 'compile' and turns 
+  a) a script named 'buildshim' which takes args like 'compile' and turns
   them into 'make', etc.
   b) the master.cfg for the project's buildbot master
   c) the config.json listing the slaves and branches to build
-- For ease of keeping config in git, Buildbot state files are segregated 
+- For ease of keeping config in git, Buildbot state files are segregated
   into a separate directory
 - A common python class is used to make the master.cfg files shorter and
   a bit more declarative
@@ -186,13 +186,13 @@ View the last ten lines of the buildbot's log files with the command
 and verify manualy that there are no obvious errors.
 
 Launch a web browser and view the page http://localhost:8010
-You should see the status page for the Pyflakes buildbot, and 
+You should see the status page for the Pyflakes buildbot, and
 after you log in with the web username and password from the secrets file,
 you should be able to force a build, which should succeed.
 
 Once that works, repeat with the 'hello' and 'zlib' projects; their status
 pages are at http://localhost:8011 and http://localhost:8012, respectively.
-(See slot.txt for how the port number is set.) 
+(See slot.txt for how the port number is set.)
 
 ====== Adding Windows buildslaves ======
 
@@ -234,7 +234,7 @@ buildbot or change the kludgy BUILDUSER=buildbot line in *.sh.)
      ash
      PATH=. rebaseall -v
 
-7) Get a fresh Cygwin terminal, and repeat the earlier steps to run a slave, 
+7) Get a fresh Cygwin terminal, and repeat the earlier steps to run a slave,
    slightly tweaked to point at the linux buildmaster:
 
     Unpack the ciwrap tarball or check out ciwrap with git.
@@ -247,7 +247,7 @@ buildbot or change the kludgy BUILDUSER=buildbot line in *.sh.)
     Install buildbot with the commands
        ./bslave.sh install
 
-8) On the master Linux box, add a new slave entry in pyflakes/master.cfg 
+8) On the master Linux box, add a new slave entry in pyflakes/master.cfg
    according to the scheme
      projectname-hostname
    e.g. if your windows box's hostname is foo, then you'd add entries for
@@ -255,7 +255,7 @@ buildbot or change the kludgy BUILDUSER=buildbot line in *.sh.)
    into the slave lists in pyflakes/master.cfg
    Sanity check your changes with
      ./bmaster.sh check pyflakes
-   Then restart the masters, and make sure everything still runs, with the 
+   Then restart the masters, and make sure everything still runs, with the
    commands
      ./bservice.sh stop
      ./bservice.sh start
@@ -281,7 +281,7 @@ buildbot or change the kludgy BUILDUSER=buildbot line in *.sh.)
     you should be able to force a build, which should succeed.
     (FIXME: you'll need to take the linux slave offline before forcing a
     build is sure to do anything with the windows slave.  I should parameterize
-    builder name by target platform.) 
+    builder name by target platform.)
 
 Once pyflakes is building on windows, try hello, that should work, too.
 
@@ -289,8 +289,8 @@ The zlib example uses Visual C++ Express 2010, so before trying that, do:
 
 1) Download and install Visual C++ Express 2010 from microsoft.com/visualstudio
 
-2) As a sanity check, you might want to get a tempororary copy of the zlib 
-   source tree and verify that the example's helper batch files properly 
+2) As a sanity check, you might want to get a tempororary copy of the zlib
+   source tree and verify that the example's helper batch files properly
    compile it.
    In a Cygwin terminal, do
       cd ~
@@ -306,7 +306,7 @@ The zlib example uses Visual C++ Express 2010, so before trying that, do:
       cd ..
       ..\ciwrap\zlib\bcheck
       cd ..
-   and verify that btmp\Release has binaries in it, and the tests passed. 
+   and verify that btmp\Release has binaries in it, and the tests passed.
    Exit out of this cmd window.
    (It's a little lame that bconfigure.bat et al change the current
    directory, but making cd or popd the last command in the batch file would

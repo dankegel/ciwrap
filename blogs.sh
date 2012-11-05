@@ -18,7 +18,7 @@ abort() {
 
 # Detect OS
 case "`uname -s`" in
-Linux) 
+Linux)
     case "`lsb_release -ds`" in
     "Ubuntu 10.04"*) _os=ubu1004;;
     "Ubuntu 12.04"*) _os=ubu1204;;
@@ -40,13 +40,13 @@ ubu*)
          $HOME/master-state/*/$prod/twistd.log \
          $HOME/slave-state/*/$prod-*/twistd.log"
     ;;
-cygwin) 
+cygwin)
     logs="/var/log/buildmaster-$prod.log \
          /var/log/buildslave-*-$prod.log \
          $HOME/master-state/*/$prod/twistd.log \
          $HOME/slave-state/*/$prod-*/twistd.log"
     ;;
-*) 
+*)
     abort "unknown os $_os"
     ;;
 esac

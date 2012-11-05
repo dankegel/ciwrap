@@ -4,7 +4,7 @@ verb=$1
 
 # Detect OS
 case "`uname -s`" in
-Linux) 
+Linux)
     case "`lsb_release -ds`" in
     "Ubuntu 10.04"*) _os=ubu1004;;
     "Ubuntu 12.04"*) _os=ubu1204;;
@@ -22,7 +22,7 @@ list() {
     case $_os in
     ubu*)
         initctl list | egrep 'buildslave|buildmaster' | awk '{print $1}' ;;
-    cygwin) 
+    cygwin)
         cygrunsrv --list | egrep 'buildslave|buildmaster' ;;
     *)
         echo "Unknown os $_os"; exit 1;;

@@ -22,7 +22,7 @@ SRC=`cd $SRC; pwd`
 
 # Detect OS
 case "`uname -s`" in
-Linux) 
+Linux)
     case "`lsb_release -ds`" in
     "Ubuntu 10.04"*) _os=ubu1004;;
     "Ubuntu 12.04"*) _os=ubu1204;;
@@ -77,7 +77,7 @@ install_prereqs() {
         esac
     fi
 
-    if test ! -x "`which unzip 2>/dev/null`" 
+    if test ! -x "`which unzip 2>/dev/null`"
     then
         case $_os in
         ubu*)   sudo apt-get install unzip;;
@@ -108,7 +108,7 @@ install_buildbot() {
     then
         abort "$TOP already exists"
     fi
-  
+
     install_prereqs
     (
     # Master
@@ -212,7 +212,7 @@ do_run() {
     arg="$1"
     cd $TOP/sandbox
     . bin/activate
-    
+
     mcfg=$VIRTUAL_ENV/$arg/master.cfg
     test -f "$mcfg" || abort "no such file $mcfg"
     dir=`dirname $mcfg`
