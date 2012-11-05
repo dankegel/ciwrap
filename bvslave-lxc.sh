@@ -17,7 +17,7 @@ Usage:
   bvslave-lxc.sh os uninit projectname
   bvslave-lxc.sh os uninstall
 
-where osname is ubu10 or ubu12.
+where osname is ubu1004 or ubu1204.
 If kitchen_sink is given, the resulting VM will be loaded with a largish set of system packages.
 _EOF_
 
@@ -65,9 +65,9 @@ MASTER=${MASTER:-$HOSTNAME}
 PATH=$SRC/lxc-local:$PATH
 
 case $_os in
-ubu10) GUEST_DISTRO=ubuntu GUEST_VERSION=lucid   HOSTNAME=$HOSTNAME-ubu10;;
-ubu12) GUEST_DISTRO=ubuntu GUEST_VERSION=precise HOSTNAME=$HOSTNAME-ubu12;;
-*) abort "Unknown OS $_os, please specify ubu10 or ubu12 as 1st arg"
+ubu1004) GUEST_DISTRO=ubuntu GUEST_VERSION=lucid   HOSTNAME=$HOSTNAME-ubu1004;;
+ubu1204) GUEST_DISTRO=ubuntu GUEST_VERSION=precise HOSTNAME=$HOSTNAME-ubu1204;;
+*) abort "Unknown OS $_os, please specify ubu1004 or ubu1204 as 1st arg"
 esac
 
 echo "Running $GUEST_DISTRO $GUEST_VERSION in lxc, advertising hostname $HOSTNAME, using $MASTER as master"

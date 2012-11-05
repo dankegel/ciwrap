@@ -8,7 +8,7 @@ set -x
 
 projects="pyflakes"
 
-guest="ubu12"
+guest="ubu1204"
 
 install_and_start()
 {
@@ -19,7 +19,7 @@ install_and_start()
     fi
 
     sh bmaster.sh install
-    sh bvslave-lxc.sh ubu12 install
+    sh bvslave-lxc.sh $guest install
 
     for proj in $projects
     do
