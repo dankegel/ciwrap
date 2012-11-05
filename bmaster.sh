@@ -173,6 +173,7 @@ init_master() {
     cd $TOP/sandbox
     . bin/activate
     orig_mcfg=$SRC/$arg/master.cfg
+    orig_jcfg=$SRC/$arg/config.json
 
     test -f "$orig_mcfg" || abort "no such file $orig_mcfg"
     dir=`dirname $orig_mcfg`
@@ -184,10 +185,11 @@ init_master() {
     # Create buildbot.tac, static html files etc. in given dir
     buildbot create-master -r $VIRTUAL_ENV/$m
     # Symlink to original versions in git of anything we need to override
-    # Right now, it's just master.cfg
     ln -sf $orig_mcfg $VIRTUAL_ENV/$m/master.cfg
-    # Ugly.  What's the right way to do this?
-    ln -sf $SRC/common/* $VIRTUAL_ENV/$m/
+    ln -sf $orig_jcfg $VIRTUAL_ENV/$m/config.json
+    # repetitive, but that's ok
+    mkdir -p $VIRTUAL_ENV/common
+    ln -sf $SRC/common/* $VIRTUAL_ENV/common
     )
     install_service $arg
 }

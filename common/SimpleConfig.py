@@ -1,12 +1,18 @@
 from buildbot.buildslave import BuildSlave
+from buildbot.changes import filter
+from buildbot.config import BuilderConfig
+from buildbot.process.factory import BuildFactory
+from buildbot.schedulers.basic import SingleBranchScheduler
+from buildbot.schedulers.forcesched import ForceScheduler, FixedParameter, StringParameter
 from buildbot.status import html
 from buildbot.status.web import authz, auth
-from buildbot.schedulers.basic import SingleBranchScheduler
-from buildbot.schedulers.forcesched import ForceScheduler
-from buildbot.changes import filter
+from buildbot.steps.shell import ShellCommand
+from buildbot.steps.source.git import Git
 from twisted.python import log
 import json
 import os
+
+from buildbot.changes.gitpoller import GitPoller
 
 class SimpleConfig(dict):
     """A buildbot master which has a web status page, offsets port numbers according to a text file, and reads secrets from a json file."""
@@ -73,7 +79,6 @@ class SimpleConfig(dict):
         }
 
         ####### PROJECT IDENTITY
-
         # the 'title' string will appear at the top of this buildbot
         # installation's html.WebStatus home page (linked to the
         # 'titleURL') and is embedded in the title of the waterfall HTML page.
@@ -89,61 +94,83 @@ class SimpleConfig(dict):
 
         self['buildbotURL'] = "http://localhost:%d/" % self.get_http_port()
 
+        # For seeing if we've configured a given slave yet.  Easier than searching self['slaves'].
+        self._slavehash = {}
 
-    def addSimpleProject(self, name, slavenames, repourl, repobranch="master"):
-        """Add a project with one branch and one platform, which builds when
-        the source changes or when Force is clicked.
+        # These will be built up over the course of one or more calls to addSimpleProject
+        self['slaves'] = []
+        self['change_source'] = []
+        self['builders'] = []
+        self['schedulers'] = []
+
+
+
+
+    def addSimpleProject(self, name, repourl, slaveconfigfile):
+        """Add a project which builds when the source changes or when Force is clicked,
+        and gets its list of branches and slaves from the given json file.
 
         """
 
-        ####### CHANGESOURCES
-        # the 'change_source' setting tells the buildmaster how it should find out
-        # about source code changes.  
+        ####### SLAVES
+        sf = json.load(open(os.path.expanduser(slaveconfigfile)))
+        slaveconfigs = sf["slaves"];
+        branchnames = []
+        slavenames = []
+        for slaveconfig in slaveconfigs:
+            sname = slaveconfig["name"].encode('ascii','ignore')
+            sbranch = slaveconfig["branch"].encode('ascii','ignore')
+            if sname not in self._slavehash:
+                s = BuildSlave(sname, self.slavepass)
+                self['slaves'].append(s)
+                self._slavehash[sname] = s
+            if sname not in slavenames:
+                slavenames.append(sname)
+            if sbranch not in branchnames:
+                branchnames.append(sbranch)
 
-        from buildbot.changes.gitpoller import GitPoller
-        self['change_source'] = []
+        ####### CHANGESOURCES
+        # It's a git git git git git world
         self['change_source'].append(
-            GitPoller(repourl,  branch=repobranch, workdir='gitpoller-workdir', pollinterval=300))
+            GitPoller(repourl,  branches=branchnames, workdir='gitpoller-workdir-'+name, pollinterval=300))
 
         ####### BUILDERS
-
-        # The 'builders' list defines the Builders, which tell Buildbot how to perform a build:
-        # what steps, and which slaves can execute them.  Note that any particular build will
-        # only take place on one slave.
-
-        from buildbot.process.factory import BuildFactory
-        from buildbot.steps.source.git import Git
-        from buildbot.steps.shell import ShellCommand
-
         factory = BuildFactory()
         # check out the source
         factory.addStep(Git(repourl=repourl, mode='full', method='copy'))
         for step in ["install_deps", "configure", "compile", "check", "package", "uninstall_deps"]:
             factory.addStep(ShellCommand(command=["../../buildshim", step], description=step))
-
-        from buildbot.config import BuilderConfig
-
-        self['builders'] = []
-        self['builders'].append(
-            BuilderConfig(name=name,
-              slavenames=slavenames,
-              factory=factory))
-
-        self['slaves'] = []
-        for slavename in slavenames:
-            self['slaves'].append(BuildSlave(slavename, self.slavepass))
+        # Give each branch its own builder to make the waterfall easier to read
+        for branch in branchnames:
+            buildername = name+'-'+branch
+            self['builders'].append(
+                BuilderConfig(name=buildername,
+                  slavenames=slavenames,
+                  factory=factory))
 
         ####### SCHEDULERS
-        # Configure the Schedulers, which react to incoming changes.
-        # In this case, just kick off a 'runtests' build
-        self['schedulers'] = []
-        self['schedulers'].append(
-            SingleBranchScheduler(
-                name="all",
-                change_filter=filter.ChangeFilter(branch=repobranch),
-                treeStableTimer=None,
-                builderNames=[name]))
-        self['schedulers'].append(
-            ForceScheduler(
-                name="force",
-                builderNames=[name]))
+        for branch in branchnames:
+            buildername = name+'-'+branch
+            self['schedulers'].append(
+                SingleBranchScheduler(
+                    name=buildername,
+                    change_filter=filter.ChangeFilter(branch=branch),
+                    treeStableTimer=None,
+                    builderNames=[buildername]))
+            self['schedulers'].append(
+                ForceScheduler(
+                    name=buildername+"force",
+                    builderNames=[buildername],
+                    branch=FixedParameter(name="branch", default=branch),
+                    # will generate nothing in the form, but revision, repository,
+                    # and project are needed by buildbot scheduling system so we
+                    # need to pass a value ("")
+                    revision=FixedParameter(name="revision", default=""),
+                    repository=FixedParameter(name="repository", default=""),
+                    project=FixedParameter(name="project", default=""),
+                    properties=[
+                        StringParameter(name="pull_url",
+                            label="experimental: optional git pull url:<br>",
+                            default="", size=80)
+                    ]
+                ))

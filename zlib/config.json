@@ -1,0 +1,6 @@
+{
+    "slaves" : [
+        { "name":"zlib-e8400", "branch":"master" },
+        { "name":"zlib-i7",    "branch":"master" }
+    ]
+}

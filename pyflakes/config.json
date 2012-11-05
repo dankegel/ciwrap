@@ -1,0 +1,6 @@
+{
+    "slaves" : [
+        { "name":"pyflakes-e8400", "branch":"master" },
+        { "name":"pyflakes-i7",    "branch":"master" }
+    ]
+}
