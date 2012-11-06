@@ -119,7 +119,7 @@ install_prereqs() {
     if ! automake --version
     then
         case $_os in
-        ubu*)   sudo apt-get install automake;;
+        ubu*)   sudo apt-get install -y automake;;
         cygwin) apt-cyg install automake;;
         esac
     fi
@@ -127,7 +127,7 @@ install_prereqs() {
     if ! patch --version
     then
         case $_os in
-        ubu*)   sudo apt-get install patch;;
+        ubu*)   sudo apt-get install -y patch;;
         cygwin) apt-cyg install patch;;
         esac
     fi
@@ -136,7 +136,7 @@ install_prereqs() {
     if ! virtualenv --version > /dev/null 2>&1
     then
         case $_os in
-        ubu*) sudo apt-get install python-dev python-virtualenv ;;
+        ubu*) sudo apt-get install -y python-dev python-virtualenv ;;
         cygwin) easy_install pip virtualenv ;;   # README already had you install python
         esac
     fi

@@ -71,8 +71,8 @@ install_prereqs() {
     if ! git --version
     then
         case $_os in
-        ubu1004)  sudo apt-get install git-core;;
-        ubu*)   sudo apt-get install git;;
+        ubu1004)  sudo apt-get install -y git-core;;
+        ubu*)   sudo apt-get install -y git;;
         cygwin) apt-cyg install git;;
         esac
     fi
@@ -80,7 +80,7 @@ install_prereqs() {
     if test ! -x "`which unzip 2>/dev/null`"
     then
         case $_os in
-        ubu*)   sudo apt-get install unzip;;
+        ubu*)   sudo apt-get install -y unzip;;
         cygwin) apt-cyg install unzip;;
         esac
     fi
@@ -88,7 +88,7 @@ install_prereqs() {
     if ! virtualenv --version > /dev/null 2>&1
     then
         case $_os in
-        ubu*) sudo apt-get install python-dev python-virtualenv ;;
+        ubu*) sudo apt-get install -y python-dev python-virtualenv ;;
         cygwin) easy_install pip virtualenv ;;   # README already had you install python
         esac
     fi
@@ -96,7 +96,7 @@ install_prereqs() {
     if ! patch --version
     then
         case $_os in
-        ubu*)   sudo apt-get install patch;;
+        ubu*)   sudo apt-get install -y patch;;
         cygwin) apt-cyg install patch;;
         esac
     fi
