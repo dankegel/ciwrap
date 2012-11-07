@@ -119,14 +119,18 @@ install_prereqs() {
         echo "============================="
     fi
 
-    if ! automake --version
-    then
-        case $_os in
-        ubu*)   sudo apt-get install -y automake;;
-        cygwin) apt-cyg install automake;;
-        osx*)   sudo port install automake;;
-        esac
-    fi
+    # Some packages are the same on all systems
+    for pkg in autoconf automake patch
+    do
+        if ! $pkg --version
+        then
+            case $_os in
+            ubu*)   sudo apt-get install -y $pkg;;
+            cygwin) apt-cyg install $pkg;;
+            osx*)   sudo port install $pkg;;
+            esac
+        fi
+    done
  
     if ! gcc --version > /dev/null 2>&1
     then
@@ -144,15 +148,6 @@ install_prereqs() {
         ubu*)    sudo apt-get install -y git;;
         cygwin)  apt-cyg install git;;
         osx*)    sudo port install git-core;;
-        esac
-    fi
-
-    if ! patch --version
-    then
-        case $_os in
-        ubu*)   sudo apt-get install -y patch;;
-        cygwin) apt-cyg install patch;;
-        osx*)   sudo port install patch;;
         esac
     fi
 
