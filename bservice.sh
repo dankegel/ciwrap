@@ -1,22 +1,39 @@
 #!/bin/sh
-# Start or stop all the buildbot masters and slaves on this machine
-verb=$1
 
-# Detect OS
-case "`uname -s`" in
-Linux)
-    case "`lsb_release -ds`" in
-    "Ubuntu 10.04"*) _os=ubu1004;;
-    "Ubuntu 12.04"*) _os=ubu1204;;
-    "Ubuntu 12.10"*) _os=ubu1210;;
-    *) abort "unrecognized linux";;
+usage() {
+cat << _EOF_
+Start or stop all the buildbot masters and slaves on this machine
+Usage:
+    sh bservice.sh start|stop|status
+_EOF_
+}
+
+abort() {
+    echo fatal error: $1
+    exit 1
+}
+
+detect_os() {
+    # Detect OS
+    case "`uname -s`" in
+    Linux)
+        case "`lsb_release -ds`" in
+        "Ubuntu 10.04"*) echo ubu1004;;
+        "Ubuntu 12.04"*) echo ubu1204;;
+        *) abort "unrecognized linux";;
+        esac
+        ;;
+    Darwin)
+        case `sw_vers -productVersion` in
+        10.7.*) echo osx107;;
+        *) abort "unrecognized mac";;
+        esac
+        ;;
+    CYGWIN*WOW64) echo cygwin;;
+    CYGWIN*)      echo cygwin;;
+    *) abort "unrecognized os";;
     esac
-    ;;
-Darwin) abort "don't support mac yet";;
-CYGWIN*WOW64) _os=cygwin;;
-CYGWIN*)      _os=cygwin;;
-*) abort "unrecognized os";;
-esac
+}
 
 list() {
     case $_os in
@@ -24,15 +41,22 @@ list() {
         initctl list | egrep 'buildslave|buildmaster' | awk '{print $1}' ;;
     cygwin)
         cygrunsrv --list | egrep 'buildslave|buildmaster' ;;
+    osx*)
+        sudo launchctl list | egrep 'net.buildbot' | awk '{print $3}' ;;
     *)
         echo "Unknown os $_os"; exit 1;;
     esac
 }
 
+set -x
+set -e
+
+verb=$1
 cygverb=$verb
+_os=`detect_os`
 
 case "$verb" in
-"") echo usage: $0 'start|stop|status'; exit 0;;
+"") usage; exit 0;;
 list) list ; exit 0;;
 status) cygverb=query ;;
 esac
@@ -42,7 +66,8 @@ do
     case $_os in
     ubu*) sudo initctl $verb $service ;;
     cygwin) cygrunsrv --$cygverb $service ;;
+    osx*) sudo launchctl $verb $service ;;
     *)
-        echo "Unknown os $_os"; exit 1;;
+        echo "Unknown os $_os"; usage; exit 1;;
     esac
 done

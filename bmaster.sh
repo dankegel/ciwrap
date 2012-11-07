@@ -12,6 +12,32 @@ Usage:
 _EOF_
 }
 
+abort() {
+    echo fatal error: $1
+    exit 1
+}
+
+detect_os() {
+    # Detect OS
+    case "`uname -s`" in
+    Linux)
+        case "`lsb_release -ds`" in
+        "Ubuntu 10.04"*) echo ubu1004;;
+        "Ubuntu 12.04"*) echo ubu1204;;
+        *) abort "unrecognized linux";;
+        esac
+        ;;
+    Darwin)
+        case `sw_vers -productVersion` in
+        10.7.*) echo osx107;;
+        *) abort "unrecognized mac";;
+        esac
+        ;;
+    CYGWIN*WOW64) echo cygwin;;
+    CYGWIN*)      echo cygwin;;
+    *) abort "unrecognized os";;
+    esac
+}
 set -x
 set -e
 
@@ -19,27 +45,6 @@ set -e
 SRC=`dirname $0`
 # Get an absolute directory (for the case where it's run with 'sh bmaster.sh')
 SRC=`cd $SRC; pwd`
-
-# Detect OS
-case "`uname -s`" in
-Linux)
-    case "`lsb_release -ds`" in
-    "Ubuntu 10.04"*) _os=ubu1004;;
-    "Ubuntu 12.04"*) _os=ubu1204;;
-    "Ubuntu 12.10"*) _os=ubu1210;;
-    *) abort "unrecognized linux";;
-    esac
-    ;;
-Darwin) abort "don't support mac yet";;
-CYGWIN*WOW64) _os=cygwin;;
-CYGWIN*)      _os=cygwin;;
-*) abort "unrecognized os";;
-esac
-
-abort() {
-    echo fatal error: $1
-    exit 1
-}
 
 if test "$LOGNAME" = ""
 then
@@ -52,14 +57,19 @@ else
     BUILDUSERHOME=$HOME
 fi
 
+virtualenv=virtualenv
+_os=`detect_os`
 case $_os in
 cygwin)
     if test $BUILDUSER = SYSTEM
     then
-        echo "Cygwin service, no idea what real user is, hope it's 'buildbot'."
+        echo "FIXME: Cygwin service, no idea what real user is, hope it's 'buildbot'."
         BUILDUSER=buildbot
         BUILDUSERHOME=`eval echo ~$BUILDUSER`
     fi
+    ;;
+osx*)
+    virtualenv=virtualenv-2.7
     ;;
 esac
 
@@ -67,29 +77,13 @@ esac
 TOP=$BUILDUSERHOME/master-state
 
 install_prereqs() {
-
     if ! git --version
     then
         case $_os in
-        ubu1004)  sudo apt-get install -y git-core;;
-        ubu*)   sudo apt-get install -y git;;
-        cygwin) apt-cyg install git;;
-        esac
-    fi
-
-    if test ! -x "`which unzip 2>/dev/null`"
-    then
-        case $_os in
-        ubu*)   sudo apt-get install -y unzip;;
-        cygwin) apt-cyg install unzip;;
-        esac
-    fi
-
-    if ! virtualenv --version > /dev/null 2>&1
-    then
-        case $_os in
-        ubu*) sudo apt-get install -y python-dev python-virtualenv ;;
-        cygwin) easy_install pip virtualenv ;;   # README already had you install python
+        ubu1004) sudo apt-get install -y git-core;;
+        ubu*)    sudo apt-get install -y git;;
+        cygwin)  apt-cyg install git;;
+        osx*)    sudo port install git-core;;
         esac
     fi
 
@@ -98,9 +92,30 @@ install_prereqs() {
         case $_os in
         ubu*)   sudo apt-get install -y patch;;
         cygwin) apt-cyg install patch;;
+        osx*)   sudo port install patch;;
         esac
     fi
 
+    if test ! -x "`which unzip 2>/dev/null`"
+    then
+        case $_os in
+        ubu*)   sudo apt-get install -y unzip;;
+        cygwin) apt-cyg install unzip;;
+        osx*)   sudo port install unzip;;
+        esac
+    fi
+
+    if ! $virtualenv --version > /dev/null 2>&1
+    then
+        case $_os in
+        ubu*)   sudo apt-get install -y python-dev python-virtualenv ;;
+        cygwin) easy_install pip virtualenv ;;   # README already had you install python
+        osx*)   
+            sudo port install python27 py27-virtualenv
+            sudo port select --set python python27
+            ;;
+        esac
+    fi
 }
 
 install_buildbot() {
@@ -114,7 +129,7 @@ install_buildbot() {
     # Master
     mkdir -p $TOP
     cd $TOP
-    virtualenv --no-site-packages sandbox
+    $virtualenv --no-site-packages sandbox
     cd $TOP/sandbox
     . bin/activate
     if false
@@ -235,12 +250,12 @@ uninit_master() {
 
 # Add this project's buildmaster to the system service manager.
 install_service() {
-    arg="$1"
+    projname="$1"
     case $_os in
     ubu*)
     (
         cat  <<_EOF_
-description "ciwrap buildbot master startup for $arg"
+description "ciwrap buildbot master startup for $projname"
 author "Dan Kegel <dank@kegel.com>"
 
 start on (started network-interface or started network-manager or started networking)
@@ -248,27 +263,36 @@ stop on (stopping network-interface or stopping network-manager or stopping netw
 respawn
 console log
 setuid $BUILDUSER
-exec sh $SRC/bmaster.sh run $arg
+exec sh $SRC/bmaster.sh run $projname
 _EOF_
-    ) | sudo tee /etc/init/buildmaster-$arg.conf
+    ) | sudo tee /etc/init/buildmaster-$projname.conf
     ;;
     cygwin)
         # Must use "run as administrator" to run the cygwin terminal that runs this script!
-        cygrunsrv -I buildmaster-$arg --path /bin/sh --args "$SRC/bmaster.sh run $arg"
+        cygrunsrv -I buildmaster-$projname --path /bin/sh --args "$SRC/bmaster.sh run $projname"
+        ;;
+    osx*)
+        sed "s,\$SRC,$SRC,;s,\$BUILDUSER,$BUILDUSER,;s,\$PROJNAME,$projname," < $SRC/master.plist | sudo tee /Library/LaunchDaemons/net.buildbot.master.$projname.plist
+        sudo launchctl load /Library/LaunchDaemons/net.buildbot.master.$projname.plist
+        # Unlike other two systems, on the Mac, the service starts as soon as it's loaded.
         ;;
     *) abort "unsupported OS $_os";;
     esac
 }
 
 uninstall_service() {
-    arg="$1"
+    projname="$1"
     case $_os in
     ubu*)
-        sudo rm /etc/init/buildmaster-$arg.conf
+        sudo rm /etc/init/buildmaster-$projname.conf
         ;;
     cygwin)
         # Must use "run as administrator" to run the cygwin terminal that runs this script!
-        cygrunsrv --remove buildmaster-$arg
+        cygrunsrv --remove buildmaster-$projname
+        ;;
+    osx*)
+        sudo launchctl unload /Library/LaunchDaemons/net.buildbot.master.$projname.plist
+        sudo rm -f /Library/LaunchDaemons/net.buildbot.master.$projname.plist
         ;;
     *) abort "unsupported OS $_os";;
     esac

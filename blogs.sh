@@ -1,6 +1,45 @@
 #!/bin/sh
 # Operate on the names of all the log files for a given project
 # Note: not all of these log files will exist.
+
+usage() {
+cat << _EOF_
+Display all logs related to a given buildbot.
+Usage:
+    sh blog.sh project command
+where command is "tail" or "grep foo" or whatever you'd like to do to the logs.
+_EOF_
+}
+
+abort() {
+    echo fatal error: $1
+    exit 1
+}
+
+detect_os() {
+    # Detect OS
+    case "`uname -s`" in
+    Linux)
+        case "`lsb_release -ds`" in
+        "Ubuntu 10.04"*) echo ubu1004;;
+        "Ubuntu 12.04"*) echo ubu1204;;
+        *) abort "unrecognized linux";;
+        esac
+        ;;
+    Darwin)
+        case `sw_vers -productVersion` in
+        10.7.*) echo osx107;;
+        *) abort "unrecognized mac";;
+        esac
+        ;;
+    CYGWIN*WOW64) echo cygwin;;
+    CYGWIN*)      echo cygwin;;
+    *) abort "unrecognized os";;
+    esac
+}
+set -x
+set -e
+
 prod=$1
 case "$prod" in
 "") echo "missing project; usage: sh blog.sh project command"; exit 1;;
@@ -11,27 +50,7 @@ case "$1" in
 "") echo "missing command; usage: sh blog.sh project command"; exit 1;;
 esac
 
-abort() {
-    echo fatal error: $1
-    exit 1
-}
-
-# Detect OS
-case "`uname -s`" in
-Linux)
-    case "`lsb_release -ds`" in
-    "Ubuntu 10.04"*) _os=ubu1004;;
-    "Ubuntu 12.04"*) _os=ubu1204;;
-    "Ubuntu 12.10"*) _os=ubu1210;;
-    *) abort "unrecognized linux";;
-    esac
-    ;;
-Darwin) abort "don't support mac yet";;
-CYGWIN*WOW64) _os=cygwin;;
-CYGWIN*)      _os=cygwin;;
-*) abort "unrecognized os";;
-esac
-
+_os=`detect_os`
 case $_os in
 ubu*)
     sudo chmod 644 /var/log/upstart/build*
@@ -43,6 +62,13 @@ ubu*)
 cygwin)
     logs="/var/log/buildmaster-$prod.log \
          /var/log/buildslave-*-$prod.log \
+         $HOME/master-state/*/$prod/twistd.log \
+         $HOME/slave-state/*/$prod-*/twistd.log"
+    ;;
+osx*)
+    # Sigh.
+    grep net.buildbot.*.$prod < /var/log/system.log > /tmp/$prod.log
+    logs="/tmp/$prod.log \
          $HOME/master-state/*/$prod/twistd.log \
          $HOME/slave-state/*/$prod-*/twistd.log"
     ;;

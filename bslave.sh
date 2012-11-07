@@ -13,6 +13,32 @@ Usage:
 _EOF_
 }
 
+abort() {
+    echo fatal error: $1
+    exit 1
+}
+
+detect_os() {
+    # Detect OS
+    case "`uname -s`" in
+    Linux)
+        case "`lsb_release -ds`" in
+        "Ubuntu 10.04"*) echo ubu1004;;
+        "Ubuntu 12.04"*) echo ubu1204;;
+        *) abort "unrecognized linux";;
+        esac
+        ;;
+    Darwin)
+        case `sw_vers -productVersion` in
+        10.7.*) echo osx107;;
+        *) abort "unrecognized mac";;
+        esac
+        ;;
+    CYGWIN*WOW64) echo cygwin;;
+    CYGWIN*)      echo cygwin;;
+    *) abort "unrecognized os";;
+    esac
+}
 set -x
 set -e
 
@@ -21,29 +47,10 @@ SRC=`dirname $0`
 # Get an absolute directory (for the case where it's run with 'sh bslave.sh')
 SRC=`cd $SRC; pwd`
 
-# Detect OS
-case "`uname -s`" in
-Linux)
-    case "`lsb_release -ds`" in
-    "Ubuntu 10.04"*) _os=ubu1004;;
-    "Ubuntu 12.04"*) _os=ubu1204;;
-    *) abort "unrecognized linux";;
-    esac
-    ;;
-Darwin) abort "don't support mac yet";;
-CYGWIN*WOW64) _os=cygwin;;
-CYGWIN*)      _os=cygwin;;
-*) abort "unrecognized os";;
-esac
-
-abort() {
-    echo fatal error: $1
-    exit 1
-}
-
 if test "$LOGNAME" = ""
 then
-    # Upstart jobs don't set traditional variables.
+    # Upstart don't set USERNAME or LOGNAME.  id -nu should work on upstart systems.
+    # Cygwin sets USERNAME, but not LOGNAME.  Happily, id -nu works on cygwin.
     BUILDUSER=`id -nu`
     BUILDUSERHOME=`eval echo ~$BUILDUSER`
 else
@@ -51,14 +58,19 @@ else
     BUILDUSERHOME=$HOME
 fi
 
+virtualenv=virtualenv
+_os=`detect_os`
 case $_os in
 cygwin)
     if test $BUILDUSER = SYSTEM
     then
-        # FIXME: Pick the user that owns $0
+        echo "FIXME: Cygwin service, no idea what real user is, hope it's 'buildbot'."
         BUILDUSER=buildbot
         BUILDUSERHOME=`eval echo ~$BUILDUSER`
     fi
+    ;;
+osx*)
+    virtualenv=virtualenv-2.7
     ;;
 esac
 
@@ -68,12 +80,13 @@ TOP=$BUILDUSERHOME/slave-state
 # same password for all slaves currently
 SLAVE_PASSWD=`awk '/slavepass/ {print $3}' $BUILDUSERHOME/myconfig.json | tr -d '[",]' `
 
+# Normally exported by virtualenv's activate, but we need it at other times, too
 VIRTUAL_ENV=$TOP/$_os
 
 # Hostname of this slave (without domain, assuming this is on a LAN and not the internet)
 HOSTNAME=`hostname -s || hostname | tr -d '\015'`
 HOSTNAME=`echo $HOSTNAME | tr -d '\015'`
-echo HOSTNAME is xx${HOSTNAME}xx
+echo HOSTNAME is ${HOSTNAME}
 
 # Hostname of build master.
 # Only used when initializing slaves.
@@ -106,21 +119,31 @@ install_prereqs() {
         echo "============================="
     fi
 
-    # Commonly needed packages we want on the slave but that are not required by buildbot itself.
-    case $_os in
-    ubu12*) GIT=git;
-            sudo apt-get install -y $GIT devscripts build-essential ccache wget;;
-    ubu*) GIT=git-core;
-            sudo apt-get install -y $GIT devscripts build-essential ccache wget;;
-    cygwin) apt-cyg install make ccache;;
-    *) abort "unknown OS";;
-    esac
-
     if ! automake --version
     then
         case $_os in
         ubu*)   sudo apt-get install -y automake;;
         cygwin) apt-cyg install automake;;
+        osx*)   sudo port install automake;;
+        esac
+    fi
+ 
+    if ! gcc --version > /dev/null 2>&1
+    then
+        case $_os in
+        ubu*) sudo apt-get gcc ;;
+        cygwin) apt-cyg install gcc gcc4 ;;
+        osx*) sudo port install gcc46 ;;
+        esac
+    fi
+
+    if ! git --version
+    then
+        case $_os in
+        ubu1004) sudo apt-get install -y git-core;;
+        ubu*)    sudo apt-get install -y git;;
+        cygwin)  apt-cyg install git;;
+        osx*)    sudo port install git-core;;
         esac
     fi
 
@@ -129,24 +152,28 @@ install_prereqs() {
         case $_os in
         ubu*)   sudo apt-get install -y patch;;
         cygwin) apt-cyg install patch;;
+        osx*)   sudo port install patch;;
         esac
     fi
 
-    # Packages needed by buildbot itself.
-    if ! virtualenv --version > /dev/null 2>&1
+    if ! $virtualenv --version > /dev/null 2>&1
     then
         case $_os in
         ubu*) sudo apt-get install -y python-dev python-virtualenv ;;
         cygwin) easy_install pip virtualenv ;;   # README already had you install python
+        osx*)   
+            sudo port install python27 py27-virtualenv
+            sudo port select --set python python27
+            ;;
         esac
     fi
-    if ! gcc --version > /dev/null 2>&1
-    then
-        case $_os in
-        ubu*) sudo apt-get gcc ;;
-        cygwin) apt-cyg install gcc gcc4 ;;
-        esac
-    fi
+
+    case $_os in
+    ubu*)   sudo apt-get install -y devscripts build-essential ccache wget;;
+    cygwin) apt-cyg      install make ccache wget;;
+    osx*)   sudo port    install gmake ccache wget;;
+    *) abort "unknown OS";;
+    esac
 }
 
 install_buildslave() {
@@ -155,7 +182,7 @@ install_buildslave() {
     (
     mkdir -p $TOP
     cd $TOP
-    test -d $_os || virtualenv --no-site-packages $_os
+    test -d $_os || $virtualenv --no-site-packages $_os
     )
     if false
     then
@@ -239,13 +266,10 @@ do_run() {
 
     cd $VIRTUAL_ENV
     pwd
-    ls -l
-    ls -l bin
     . bin/activate
     exec twistd --pidfile $VIRTUAL_ENV/$slavename/twistd.pid --nodaemon --no_save -y $VIRTUAL_ENV/$slavename/buildbot.tac
 
     echo Done
-    sleep 30000
 }
 
 uninit_slave() {
@@ -279,6 +303,11 @@ _EOF_
         # Must use "run as administrator" to run the cygwin terminal that runs this script!
         cygrunsrv -I buildslave-$_os-$projname --path /bin/sh --args "$SRC/bslave.sh run $projname"
         ;;
+    osx*)
+        sed "s,\$SRC,$SRC,;s,\$BUILDUSER,$BUILDUSER,;s,\$PROJNAME,$projname," < $SRC/slave.plist | sudo tee /Library/LaunchDaemons/net.buildbot.slave.$projname.plist
+        sudo launchctl load /Library/LaunchDaemons/net.buildbot.slave.$projname.plist
+        # Unlike other two systems, on the Mac, the service starts as soon as it's loaded.
+        ;;
     *) abort "unsupported OS $_os";;
     esac
 }
@@ -292,6 +321,10 @@ uninstall_service() {
     cygwin)
         # Must use "run as administrator" to run the cygwin terminal that runs this script!
         cygrunsrv --remove buildslave-$_os-$projname || true
+        ;;
+    osx*)
+        sudo launchctl unload /Library/LaunchDaemons/net.buildbot.slave.$projname.plist
+        sudo rm -f /Library/LaunchDaemons/net.buildbot.slave.$projname.plist
         ;;
     *) abort "unsupported OS $_os";;
     esac

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+        <key>EnvironmentVariables</key>
+        <dict>
+                <key>PATH</key>
+                <string>/opt/local/bin:/sbin:/usr/sbin:/bin:/usr/bin</string>
+        </dict>
+        <key>GroupName</key>
+        <string>daemon</string>
+        <key>KeepAlive</key>
+        <dict>
+                <key>SuccessfulExit</key>
+                <false/>
+        </dict>
+        <key>Label</key>
+        <string>net.buildbot.slave.$PROJNAME</string>
+        <key>ProgramArguments</key>
+        <array>
+                <string>sh</string>
+                <string>$SRC/bslave.sh</string>
+                <string>run</string>
+                <string>$PROJNAME</string>
+        </array>
+        <key>RunAtLoad</key>
+        <true/>
+        <key>UserName</key>
+        <string>$BUILDUSER</string>
+</dict>
+</plist>

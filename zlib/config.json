@@ -1,6 +1,7 @@
 {
     "slaves" : [
-        { "name":"zlib-e8400", "os":"win7",    "branch":"master" },
-        { "name":"zlib-i7",    "os":"ubu1204", "branch":"master" }
+        { "name":"zlib-e8400",   "os":"win7",    "branch":"master" },
+        { "name":"zlib-i7",      "os":"ubu1204", "branch":"master" },
+        { "name":"zlib-dans-mac","os":"osx107",  "branch":"master" }
     ]
 }
