@@ -1,26 +1,44 @@
 #!/bin/sh
-# Build shim for zlib, a library that uses CMake as a build system
-#
-# Build shims are short, stupid, useable, and readable.
-# They provide a uniform interface to building/testing/packaging projects,
-# whether they are built with make, ant, or need no compilation at all.
-# They are meant to be run by buildbot, jenkins, or developers interchangably.
 
-set -e
-set -x
+usage() {
+cat << _EOF_
+Buildshim for zlib, a library that uses CMake as a build system
+Usage:
+    ./buildshim install_deps
+    ./buildshim configure
+    ./buildshim compile
+    ./buildshim check
+    ./buildshim package
+    ./buildshim uninstall_deps
+_EOF_
+}
 
-SRCFILE=`readlink $0 2>/dev/null || echo $0`
-SRC=`dirname $SRCFILE`
-SRC=`cd $SRC; pwd`
-case "$OS" in
-Windows_NT)
-    WSRC=`cygpath -w $SRC`
-    # Work around http://www.cmake.org/Bug/print_bug_page.php?bug_id=13131
-    unset TMP TEMP tmp temp
-    export TMP=c:\\windows\\temp
-    export TEMP=c:\\windows\\temp
-    ;;
-esac
+abort() {
+    echo fatal error: $1
+    exit 1
+}
+
+detect_os() {
+    # Detect OS
+    case "`uname -s`" in
+    Linux)
+        case "`lsb_release -ds`" in
+        "Ubuntu 10.04"*) echo ubu1004;;
+        "Ubuntu 12.04"*) echo ubu1204;;
+        *) abort "unrecognized linux";;
+        esac
+        ;;
+    Darwin)
+        case `sw_vers -productVersion` in
+        10.7.*) echo osx107;;
+        *) abort "unrecognized mac";;
+        esac
+        ;;
+    CYGWIN*WOW64) echo cygwin;;
+    CYGWIN*)      echo cygwin;;
+    *) abort "unrecognized os";;
+    esac
+}
 
 # Parse the version number of this product from the source tree
 get_version() {
@@ -37,36 +55,42 @@ get_version() {
         sed 's/.*VERSION//' |
         tr -d '") '
 }
-version=`get_version`
+
+set -e
+set -x
+
+# Where this script really lives
+SRCFILE=`readlink $0 2>/dev/null || echo $0`
+SRC=`dirname $SRCFILE`
+# Get an absolute directory (for the case where it's run with 'sh buildslave')
+SRC=`cd $SRC; pwd`
+
 pkgname=zlib
-
-# Detect OS
-case "`uname -s`" in
-Linux)
-    case "`lsb_release -ds`" in
-    "Ubuntu 10.04"*) _os=ubu1004;;
-    "Ubuntu 12.04"*) _os=ubu1204;;
-    *) abort "unrecognized linux";;
-    esac
-    ;;
-Darwin) abort "don't support mac yet";;
-CYGWIN*WOW64) _os=cygwin;;
-CYGWIN*)      _os=cygwin;;
-*) abort "unrecognized os";;
-esac
-
+version=`get_version`
+_os=`detect_os`
 echo "This is $pkgname version $version, building on $_os"
+
+# Apply workarounds
+case $_os in
+cygwin)
+    WSRC=`cygpath -w $SRC`
+    # Work around http://www.cmake.org/Bug/print_bug_page.php?bug_id=13131
+    unset TMP TEMP tmp temp
+    export TMP=c:\\windows\\temp
+    export TEMP=c:\\windows\\temp
+    ;;
+esac
 
 # This may need adjusting for non-x86 architecuters
 ncores=`grep -c processor /proc/cpuinfo || echo 1`
 parallel="-j$ncores -l$ncores"
 
-case "$OS" in
-Windows_NT)
+case $_os in
+cygwin)
     # On Windows, we're building with Visual C++, which doesn't support ccache.
     unset CCACHE_DIR
     ;;
-*)
+ubu*)
     # If ccache is configured, use it.
     if ccache -V && test -d "$CCACHE_DIR"
     then
@@ -79,6 +103,8 @@ Windows_NT)
     export CC
     export CXX
     ;;
+osx*)
+    : # No idea how to use ccache with xcode, if at all 
 esac
 
 do_install_deps() {
@@ -107,38 +133,53 @@ do_install_deps() {
             fi
         fi
         ;;
+    osx*)
+        sudo port install cmake
+        ;;
+    *) abort "Unsupported OS $_os";;
     esac
 }
 
 do_configure() {
-    case "$OS" in
-    Windows_NT)
+    case "$_os" in
+    cygwin)
         cmd /c $WSRC\\bconfigure.bat
         ;;
-    *)
+    ubu*)
         mkdir btmp
         cd btmp
         cmake ..
+        cd ..
+        ;;
+    osx*)
+        mkdir btmp
+        cd btmp
+        cmake -G Xcode ..
         cd ..
         ;;
     esac
 }
 
 do_compile() {
-    case "$OS" in
+    case "$_os" in
     Windows_NT)
         cmd /c $WSRC\\bcompile.bat
         ;;
-    *)
+    ubu*)
         cd btmp
         make $parallel
+        cd ..
+        ;;
+    osx*)
+        cd btmp
+        xcodebuild -project zlib.xcodeproj -configuration Release
         cd ..
         ;;
     esac
 }
 
 do_check() {
-    case "$OS" in
+    case "$_os" in
     Windows_NT)
         rm -f btmp/Testing/Temporary/LastTestsFailed.log
         cmd /c $WSRC\\bcheck.bat
@@ -148,11 +189,13 @@ do_check() {
             echo tests failed
         fi
         ;;
-    *)
+    ubu*)
         cd btmp
         make $parallel test
         cd ..
         ;;
+    osx*)
+        abort no check yet
     esac
 }
 
@@ -183,6 +226,8 @@ do_package() {
         rm -f ${pkgname}*.rpm || true
         fpm -s dir -t rpm -n $pkgname -v $version -C $DESTDIR usr
         rm -rf $DESTDIR
+        ;;
+    osx*) echo "Here we would generate a .dmg package, or something :-)"
         ;;
     esac
 }
