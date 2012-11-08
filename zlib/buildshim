@@ -40,6 +40,20 @@ detect_os() {
     esac
 }
 
+detect_ncores() {
+    case $_os in
+    ubu*)
+        grep -c processor /proc/cpuinfo || echo 1
+        ;;
+    osx*)
+        system_profiler -detailLevel full SPHardwareDataType | awk '/Total Number .f Cores/ {print $5};'
+        ;;
+    cygwin)
+        echo $NUMBER_OF_PROCESSORS
+        ;;
+    esac
+}
+
 # Parse the version number of this product from the source tree
 get_version() {
     # Only look at top few lines
@@ -81,8 +95,7 @@ cygwin)
     ;;
 esac
 
-# This may need adjusting for non-x86 architecuters
-ncores=`grep -c processor /proc/cpuinfo || echo 1`
+ncores=`detect_ncores`
 parallel="-j$ncores -l$ncores"
 
 case $_os in
