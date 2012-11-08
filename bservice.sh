@@ -9,7 +9,7 @@ _EOF_
 }
 
 abort() {
-    echo fatal error: $1
+    echo fatal error: $*
     exit 1
 }
 

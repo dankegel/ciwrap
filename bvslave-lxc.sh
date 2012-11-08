@@ -44,7 +44,7 @@ SRC=`dirname $0`
 SRC=`cd $SRC; pwd`
 
 abort() {
-    echo fatal error: $1
+    echo fatal error: $*
     exit 1
 }
 
