@@ -59,18 +59,20 @@ get_version() {
         sed 's/\].*//' |
         tr -d '][, '
 }
-set -x
-set -e
 
-# Where this script lives
-SRC=`dirname $0`
-# Get an absolute directory (for the case where it's run with 'sh bslave.sh')
+set -e
+set -x
+
+# Where this script really lives
+SRCFILE=`readlink $0 2>/dev/null || echo $0`
+SRC=`dirname $SRCFILE`
+# Get an absolute directory (for the case where it's run with 'sh buildslave')
 SRC=`cd $SRC; pwd`
 
-version=`get_version`
 pkgname=hello
+version=`get_version`
 _os=`detect_os`
-echo "This is $pkgname version $version on $_os"
+echo "This is $pkgname version $version, building on $_os"
 
 # Apply workarounds
 case $_os in
