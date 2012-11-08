@@ -52,20 +52,23 @@ set -x
 set -e
 
 verb=$1
-cygverb=$verb
 _os=`detect_os`
 
 case "$verb" in
 "") usage; exit 0;;
 list) list ; exit 0;;
-status) cygverb=query ;;
+status)
+    case $_os in
+    cygwin) verb=query ;;
+    osx*) verb=list ;;
+    esac
 esac
 
 for service in `list`
 do
     case $_os in
     ubu*) sudo initctl $verb $service ;;
-    cygwin) cygrunsrv --$cygverb $service ;;
+    cygwin) cygrunsrv --$verb $service ;;
     osx*) sudo launchctl $verb $service ;;
     *)
         echo "Unknown os $_os"; usage; exit 1;;
