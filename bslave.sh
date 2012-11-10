@@ -84,8 +84,10 @@ SLAVE_PASSWD=`awk '/slavepass/ {print $3}' $BUILDUSERHOME/myconfig.json | tr -d 
 VIRTUAL_ENV=$TOP/$_os
 
 # Hostname of this slave (without domain, assuming this is on a LAN and not the internet)
+# Convert to lowercase, since macs like to capitalize things sometimes,
+# and hostnames are case-insensitive but slave names aren't.
 HOSTNAME=`hostname -s || hostname | tr -d '\015'`
-HOSTNAME=`echo $HOSTNAME | tr -d '\015'`
+HOSTNAME=`echo $HOSTNAME | tr -d '\015' | tr "[:upper:]" "[:lower:]" `
 echo HOSTNAME is ${HOSTNAME}
 
 # Hostname of build master.
