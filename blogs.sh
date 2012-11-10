@@ -84,3 +84,8 @@ do
    $* $log
    echo ""
 done
+
+if test -f /tmp/$prod.log
+then
+    rm /tmp/$prod.log
+fi
