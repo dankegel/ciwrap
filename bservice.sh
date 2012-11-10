@@ -48,7 +48,6 @@ list() {
     esac
 }
 
-set -x
 set -e
 
 verb=$1
