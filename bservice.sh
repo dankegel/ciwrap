@@ -48,8 +48,6 @@ list() {
     esac
 }
 
-set -e
-
 verb=$1
 _os=`detect_os`
 
