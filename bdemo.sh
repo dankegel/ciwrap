@@ -26,7 +26,7 @@ install_and_start()
     for proj in $projects
     do
         echo =========== Last ten lines of logs for $proj ============
-        sleep 1
+        sleep 3
         sh blogs.sh $proj tail
     done
 }
