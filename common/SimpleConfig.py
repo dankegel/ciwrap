@@ -159,7 +159,7 @@ class SimpleConfig(dict):
         ####### SCHEDULERS
         for sos in operatingsystems:
             for branch in branchnames:
-	        osbranch = sos+'-'+sbranch
+	        osbranch = sos+'-'+branch
                 if osbranch in osbranch2slavenames:
                     buildername = name+'-'+osbranch
                     self['schedulers'].append(
