@@ -226,6 +226,10 @@ sanity_check() {
     then
         abort "Slots have duplicate values: $dups"
     fi
+    if ! test -f $BUILDUSERHOME/myconfig.json
+    then
+        abort "Can't initialize if you haven't put your secrets file at $BUILDUSERHOME/myconfig.json"
+    fi
 }
 
 init_slave() {
