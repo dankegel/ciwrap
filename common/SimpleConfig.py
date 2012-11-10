@@ -64,9 +64,9 @@ class SimpleConfig(dict):
             forceBuild = 'auth',
             forceAllBuilds = True,
             pingBuilder = False,
-            stopBuild = False,
+            stopBuild = True,
             stopAllBuilds = False,
-            cancelPendingBuild = False,
+            cancelPendingBuild = True,
         )
         self['status'].append(
             html.WebStatus(http_port=self.__http_port, authz=authz_cfg))
