@@ -22,7 +22,7 @@ pkgname=zlib
 
 _os=`bs_detect_os`
 version=`bs_get_version_cmake`
-bs_platform_workaronds
+bs_platform_workarounds
 bs_set_CC
 ncores=`bs_detect_ncores`
 parallel="-j$ncores -l$ncores"
