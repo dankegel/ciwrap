@@ -2,7 +2,7 @@
 
 usage() {
 cat << _EOF_
-Build shim for Gnu Hello, a program that uses Gnu Automake as a build system
+Buildshim for Gnu Hello, a program that uses Gnu Automake as a build system
 Usage:
     ./buildshim install_deps
     ./buildshim configure
@@ -13,99 +13,24 @@ Usage:
 _EOF_
 }
 
-abort() {
-    echo fatal error: $*
-    exit 1
-}
+SRCFILE="`readlink $0 2>/dev/null || echo $0`"
+SRC="`dirname $SRCFILE`"
+SRC="`cd $SRC; pwd`"
+. $SRC/../bs_funcs.sh
 
-detect_os() {
-    # Detect OS
-    case "`uname -s`" in
-    Linux)
-        case "`lsb_release -ds`" in
-        "Ubuntu 10.04"*) echo ubu1004;;
-        "Ubuntu 12.04"*) echo ubu1204;;
-        *) abort "unrecognized linux";;
-        esac
-        ;;
-    Darwin)
-        case `sw_vers -productVersion` in
-        10.7.*) echo osx107;;
-        *) abort "unrecognized mac";;
-        esac
-        ;;
-    CYGWIN*WOW64) echo cygwin;;
-    CYGWIN*)      echo cygwin;;
-    *) abort "unrecognized os";;
-    esac
-}
+pkgname=hello
 
-detect_ncores() {
-    case $_os in
-    ubu*)
-        grep -c processor /proc/cpuinfo || echo 1
-        ;;
-    osx*)
-        system_profiler -detailLevel full SPHardwareDataType | awk '/Total Number .f Cores/ {print $5};'
-        ;;
-    cygwin)
-        echo $NUMBER_OF_PROCESSORS
-        ;;
-    esac
-}
+_os=`bs_detect_os`
+version=`bs_get_version_configure_ac`
+bs_platform_workarounds
+bs_set_CC
+ncores=`bs_detect_ncores`
+parallel="-j$ncores -l$ncores"
 
-# Parse the version number of this product from the source tree
-get_version() {
-    # Only look at top few lines
-    # Remove comments
-    # Reformat so there is exactly one line per macro call
-    # Grab just the call to AC_INIT
-    # delete everything up to and including the open paren
-    # print out the second [parameter],
-    # and remove brackets, commas, and spaces
-
-    head -n 20 configure.ac |
-        sed 's/dnl.*//' |
-        tr '\012)' ' \012' |
-        grep AC_INIT |
-        sed 's/.*(//' |
-        sed 's/\[[^]]*\]//' |
-        sed 's/\].*//' |
-        tr -d '][, '
-}
+echo "This is $pkgname version $version, building on $_os"
 
 set -e
 set -x
-
-# Where this script really lives
-SRCFILE=`readlink $0 2>/dev/null || echo $0`
-SRC=`dirname $SRCFILE`
-# Get an absolute directory (for the case where it's run with 'sh buildslave')
-SRC=`cd $SRC; pwd`
-
-pkgname=hello
-version=`get_version`
-_os=`detect_os`
-echo "This is $pkgname version $version, building on $_os"
-
-# Apply workarounds
-case $_os in
-cygwin) PATH=/bin:$PATH ;;  # no idea why, but configure was finding Windows' find.exe!
-esac
-
-# If ccache is configured, use it.
-ncores=`detect_ncores`
-parallel="-j$ncores -l$ncores"
-if ccache -V > /dev/null && test "$CCACHE_DIR"
-then
-    CC="ccache gcc"
-    CXX="ccache g++"
-else
-    CC=gcc
-    CXX=g++
-fi
-export CC
-export CXX
 
 do_install_deps() {
     case $_os in
@@ -136,7 +61,7 @@ do_install_deps() {
     osx*)
         sudo port install texinfo
         ;;
-    *) abort "Unsupported OS";;
+    *) bs_abort "Unsupported OS";;
     esac
 }
 

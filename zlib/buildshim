@@ -13,112 +13,24 @@ Usage:
 _EOF_
 }
 
-abort() {
-    echo fatal error: $*
-    exit 1
-}
+SRCFILE="`readlink $0 2>/dev/null || echo $0`"
+SRC="`dirname $SRCFILE`"
+SRC="`cd $SRC; pwd`"
+. $SRC/../bs_funcs.sh
 
-detect_os() {
-    # Detect OS
-    case "`uname -s`" in
-    Linux)
-        case "`lsb_release -ds`" in
-        "Ubuntu 10.04"*) echo ubu1004;;
-        "Ubuntu 12.04"*) echo ubu1204;;
-        *) abort "unrecognized linux";;
-        esac
-        ;;
-    Darwin)
-        case `sw_vers -productVersion` in
-        10.7.*) echo osx107;;
-        *) abort "unrecognized mac";;
-        esac
-        ;;
-    CYGWIN*WOW64) echo cygwin;;
-    CYGWIN*)      echo cygwin;;
-    *) abort "unrecognized os";;
-    esac
-}
+pkgname=zlib
 
-detect_ncores() {
-    case $_os in
-    ubu*)
-        grep -c processor /proc/cpuinfo || echo 1
-        ;;
-    osx*)
-        system_profiler -detailLevel full SPHardwareDataType | awk '/Total Number .f Cores/ {print $5};'
-        ;;
-    cygwin)
-        echo $NUMBER_OF_PROCESSORS
-        ;;
-    esac
-}
+_os=`bs_detect_os`
+version=`bs_get_version_cmake`
+bs_platform_workaronds
+bs_set_CC
+ncores=`bs_detect_ncores`
+parallel="-j$ncores -l$ncores"
 
-# Parse the version number of this product from the source tree
-get_version() {
-    # Only look at top few lines
-    # Remove comments
-    # Grab just the call to set(VERSION ...)
-    # delete everything up to and including VERSION
-    # and remove parens and spaces
-
-    head -n 20 CMakeLists.txt |
-        sed 's/#.*//' |
-        tr '\012)' ' \012' |
-        grep 'set(VERSION' |
-        sed 's/.*VERSION//' |
-        tr -d '") '
-}
+echo "This is $pkgname version $version, building on $_os"
 
 set -e
 set -x
-
-# Where this script really lives
-SRCFILE=`readlink $0 2>/dev/null || echo $0`
-SRC=`dirname $SRCFILE`
-# Get an absolute directory (for the case where it's run with 'sh buildslave')
-SRC=`cd $SRC; pwd`
-
-pkgname=zlib
-version=`get_version`
-_os=`detect_os`
-echo "This is $pkgname version $version, building on $_os"
-
-# Apply workarounds
-case $_os in
-cygwin)
-    WSRC=`cygpath -w $SRC`
-    # Work around http://www.cmake.org/Bug/print_bug_page.php?bug_id=13131
-    unset TMP TEMP tmp temp
-    export TMP=c:\\windows\\temp
-    export TEMP=c:\\windows\\temp
-    ;;
-esac
-
-ncores=`detect_ncores`
-parallel="-j$ncores -l$ncores"
-
-case $_os in
-cygwin)
-    # On Windows, we're building with Visual C++, which doesn't support ccache.
-    unset CCACHE_DIR
-    ;;
-ubu*)
-    # If ccache is configured, use it.
-    if ccache -V && test -d "$CCACHE_DIR"
-    then
-        CC="ccache gcc"
-        CXX="ccache g++"
-    else
-        CC=gcc
-        CXX=g++
-    fi
-    export CC
-    export CXX
-    ;;
-osx*)
-    : # No idea how to use ccache with xcode, if at all 
-esac
 
 do_install_deps() {
     case $_os in
@@ -149,7 +61,7 @@ do_install_deps() {
     osx*)
         sudo port install cmake
         ;;
-    *) abort "Unsupported OS $_os";;
+    *) bs_abort "Unsupported OS $_os";;
     esac
 }
 
@@ -208,7 +120,7 @@ do_check() {
         cd ..
         ;;
     osx*)
-        abort no check yet
+        bs_abort no check yet
     esac
 }
 
