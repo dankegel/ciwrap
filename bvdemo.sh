@@ -56,4 +56,3 @@ install) install_and_start ;;
 uninstall) stop_and_uninstall ;;
 *) echo Usage: $0 'install|uninstall';;
 esac
-

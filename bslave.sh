@@ -239,7 +239,7 @@ init_slave() {
     parse_product $1
     run_in_sandbox buildslave create-slave $VIRTUAL_ENV/$slavename ${MASTER}:$slaveport $slavename $SLAVE_PASSWD
     # Create symlink so slave build steps can find buildshim
-    ln -s $SRC/$projname/buildshim $VIRTUAL_ENV/$slavename/buildshim
+    ln -s $SRC $VIRTUAL_ENV/$slavename/srclink
     install_service $1
 }
 

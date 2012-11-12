@@ -15,9 +15,12 @@ import os
 from buildbot.changes.gitpoller import GitPoller
 
 class SimpleConfig(dict):
-    """A buildbot master which has a web status page, offsets port numbers according to a text file, and reads secrets from a json file."""
-    def get_http_port(self):
-        return self.__http_port
+    """A buildbot master with a web status page and a 'force build' button,
+    which reads slaves from 'slaves.json',
+    port number offsets from 'slot.txt',
+    and secrets from a json file (usually ~/myconfig.json).
+
+    """
 
     def __init__(self,
                  name,
@@ -92,96 +95,81 @@ class SimpleConfig(dict):
         # with an externally-visible host name which the buildbot cannot figure out
         # without some help.
 
-        self['buildbotURL'] = "http://localhost:%d/" % self.get_http_port()
+        self['buildbotURL'] = "http://localhost:%d/" % self.__http_port
 
-        # For seeing if we've configured a given slave yet.  Easier than searching self['slaves'].
-        self._slavehash = {}
+        ####### SLAVES
+        self._os2slaves = {}
+        self['slaves'] = []
+        print "cwd is %s" % os.getcwd()
+        sf = json.load(open(os.path.join(dir, "slaves.json")))
+        slaveconfigs = sf["slaves"];
+        for slaveconfig in slaveconfigs:
+            sname = slaveconfig["name"].encode('ascii','ignore')
+            sos = slaveconfig["os"].encode('ascii','ignore')
+            # Restrict to a single build at a time because our buildshims
+            # typically use sudo apt-get, etc.
+            s = BuildSlave(sname, self.slavepass, max_builds=1)
+            self['slaves'].append(s)
+            if sos not in self._os2slaves:
+                self._os2slaves[sos] = []
+            self._os2slaves[sos].append(sname)
 
         # These will be built up over the course of one or more calls to addSimpleProject
-        self['slaves'] = []
         self['change_source'] = []
         self['builders'] = []
         self['schedulers'] = []
 
 
 
-
-    def addSimpleProject(self, name, repourl, slaveconfigfile):
+    def addSimpleProject(self, name, repourl, builderconfigfile):
         """Add a project which builds when the source changes or when Force is clicked,
-        and gets its list of branches and slaves from the given json file.
+        gets its list of branches and kinds of slaves to use from the given json file.
 
         """
 
-        ####### SLAVES
-        sf = json.load(open(os.path.expanduser(slaveconfigfile)))
-        slaveconfigs = sf["slaves"];
+        ####### FACTORIES
+        # FIXME: get list of steps from buildshim here
+        factory = BuildFactory()
+        # check out the source
+        factory.addStep(Git(repourl=repourl, mode='full', method='copy'))
+        for step in ["install_deps", "configure", "compile", "check", "package", "uninstall_deps"]:
+            factory.addStep(ShellCommand(command=["../../srclink/" + name + "/buildshim", step], description=step))
+
+        ####### BUILDERS AND SCHEDULERS
+        # Get list of builders from config file, see what OS they want to
+        # run on, and assign them to suitable slaves.
+        # Give each builder a normal and a force scheduler.
+        config = json.load(open(os.path.expanduser(builderconfigfile)))
+        builderconfigs = config["builders"];
         branchnames = []
-        slavenames = []
-        operatingsystems = []
-        osbranch2slavenames = {}
-        for slaveconfig in slaveconfigs:
-            sname = slaveconfig["name"].encode('ascii','ignore')
-            sbranch = slaveconfig["branch"].encode('ascii','ignore')
-            sos = slaveconfig["os"].encode('ascii','ignore')
-            if sname not in self._slavehash:
-                s = BuildSlave(sname, self.slavepass)
-                self['slaves'].append(s)
-                self._slavehash[sname] = s
-            
-	    osbranch = sos+'-'+sbranch
-            if osbranch not in osbranch2slavenames:
-                osbranch2slavenames[osbranch] = []
-            if sname not in osbranch2slavenames[osbranch]:
-                osbranch2slavenames[osbranch].append(sname)
+        for builderconfig in builderconfigs:
+            sbranch = builderconfig["branch"].encode('ascii','ignore')
             if sbranch not in branchnames:
                 branchnames.append(sbranch)
-            if sos not in operatingsystems:
-                operatingsystems.append(sos)
+            sos = builderconfig["os"].encode('ascii','ignore')
+            osbranch = sos+'-'+sbranch
+            buildername = name+'-'+osbranch
+
+            self['builders'].append(
+                BuilderConfig(name=buildername,
+                  slavenames=self._os2slaves[sos],
+                  factory=factory))
+
+            self['schedulers'].append(
+                SingleBranchScheduler(
+                    name=buildername,
+                    change_filter=filter.ChangeFilter(branch=sbranch),
+                    treeStableTimer=None,
+                    builderNames=[buildername]))
+
+            self['schedulers'].append(
+                ForceScheduler(
+                    name=buildername+"-force",
+                    builderNames=[buildername],
+                    branch=FixedParameter(name="branch", default=sbranch),
+                ))
 
         ####### CHANGESOURCES
         # It's a git git git git git world
         self['change_source'].append(
             GitPoller(repourl,  branches=branchnames, workdir='gitpoller-workdir-'+name, pollinterval=300))
-
-        ####### BUILDERS
-        factory = BuildFactory()
-        # check out the source
-        factory.addStep(Git(repourl=repourl, mode='full', method='copy'))
-        for step in ["install_deps", "configure", "compile", "check", "package", "uninstall_deps"]:
-            factory.addStep(ShellCommand(command=["../../buildshim", step], description=step))
-        # Give each branch its own builder to make the waterfall easier to read
-        for osbranch in osbranch2slavenames:
-            self['builders'].append(
-                BuilderConfig(name=name+'-'+osbranch,
-                  slavenames=osbranch2slavenames[osbranch],
-                  factory=factory))
-
-        ####### SCHEDULERS
-        for sos in operatingsystems:
-            for branch in branchnames:
-	        osbranch = sos+'-'+branch
-                if osbranch in osbranch2slavenames:
-                    buildername = name+'-'+osbranch
-                    self['schedulers'].append(
-                        SingleBranchScheduler(
-                            name=buildername,
-                            change_filter=filter.ChangeFilter(branch=branch),
-                            treeStableTimer=None,
-                            builderNames=[buildername]))
-                    self['schedulers'].append(
-                        ForceScheduler(
-                            name=buildername+"force",
-                            builderNames=[buildername],
-                            branch=FixedParameter(name="branch", default=branch),
-                            # will generate nothing in the form, but revision, repository,
-                            # and project are needed by buildbot scheduling system so we
-                            # need to pass a value ("")
-                            revision=FixedParameter(name="revision", default=""),
-                            repository=FixedParameter(name="repository", default=""),
-                            project=FixedParameter(name="project", default=""),
-                            properties=[
-                                StringParameter(name="pull_url",
-                                    label="experimental: optional git pull url:<br>",
-                                    default="", size=80)
-                            ]
-                        ))
