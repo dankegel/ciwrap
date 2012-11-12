@@ -1,8 +1,10 @@
 #!/bin/sh
 
+pkgname=hello
+
 usage() {
 cat << _EOF_
-Buildshim for Gnu Hello, a program that uses Gnu Automake as a build system
+Buildshim for $pkgname
 Usage:
     ./buildshim install_deps
     ./buildshim configure
@@ -17,8 +19,6 @@ SRCFILE="`readlink $0 2>/dev/null || echo $0`"
 SRC="`dirname $SRCFILE`"
 SRC="`cd $SRC; pwd`"
 . $SRC/../bs_funcs.sh
-
-pkgname=hello
 
 _os=`bs_detect_os`
 version=`bs_get_version_configure_ac`
