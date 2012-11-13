@@ -202,9 +202,10 @@ install_buildslave() {
     fi
 }
 
-# Helper to split the given product spec into name and port,
-# and set $VIRTUAL_ENV/$slavename to the directory containing its bot
-parse_product() {
+# Given the project name, set the variables 'slaveport' and 'slavename'
+# such that $VIRTUAL_ENV/$slavename is the directory containing its bot,
+# and $slaveport is the port the slave should connect to the master on.
+parse_project() {
     projname=$1
     ####### PORT NUMBERS
     # It's hard to keep port numbers straight for multiple projects,
@@ -236,7 +237,7 @@ sanity_check() {
 
 init_slave() {
     sanity_check
-    parse_product $1
+    parse_project $1
     run_in_sandbox buildslave create-slave $VIRTUAL_ENV/$slavename ${MASTER}:$slaveport $slavename $SLAVE_PASSWD
     # Create symlink so slave build steps can find buildshim
     ln -s $SRC $VIRTUAL_ENV/$slavename/srclink
@@ -245,7 +246,7 @@ init_slave() {
 
 # Run service in foreground with no extra processes (e.g. subshells) in memory
 do_run() {
-    parse_product $1
+    parse_project $1
     CCACHE_DIR="$VIRTUAL_ENV/$slavename/ccache.dir"
     if ! test -d $CCACHE_DIR
     then
@@ -275,14 +276,14 @@ do_run() {
 
 uninit_slave() {
     uninstall_service $1
-    parse_product $1
+    parse_project $1
     # Better stop it before doing this
     rm -rf $VIRTUAL_ENV/$slavename
 }
 
 # Add this project's buildslave to the system service manager.
 install_service() {
-    parse_product $1
+    parse_project $1
 
     case $_os in
     ubu*)
@@ -314,7 +315,7 @@ _EOF_
 }
 
 uninstall_service() {
-    parse_product $1
+    parse_project $1
     case $_os in
     ubu*)
         sudo rm -f /etc/init/buildslave-$_os-$projname.conf

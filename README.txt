@@ -124,14 +124,14 @@ just means losing build history.)  master-state contains the directory
 
 Each project (pyflakes, hello, zlib, etc) has its own buildbot master.
 The ephemeral state for each buildbot master lives in the directory
-~/master-state/sandbox/$PRODUCT
+~/master-state/sandbox/$PROJECT
 This contains not only twistd.log (the log file for the project's master),
 but also a symlink back to master.cfg.
 
 Likewise, state of the installed slaves are kept in the directory
 ~/slave-state.
 Each project has many buildslaves; each buildslave has a directory
-~/slave-state/$OS/$PRODUCT-$HOSTNAME, where OS is the target operating
+~/slave-state/$OS/$PROJECT-$HOSTNAME, where OS is the target operating
 system being built for, and HOSTNAME is the hostname of the machine the
 buildslave is running on.  This directory exists only on the slave
 machine.
