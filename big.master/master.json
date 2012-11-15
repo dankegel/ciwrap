@@ -1,0 +1,31 @@
+{
+    "slaves" : [
+        { "name":"big.master-e8400",          "os":"win7"    },
+        { "name":"big.master-i7",             "os":"ubu1204" },
+        { "name":"big.master-dkegel-desktop", "os":"ubu1004" },
+        { "name":"big.master-dans-mac",       "os":"osx107"  }
+    ],
+
+    "projects" : [
+        {
+            "name" : "hello",
+            "repourl" : "git://git.savannah.gnu.org/hello.git",
+            "builders" : [
+                { "os":"win7",    "branch":"master" },
+                { "os":"ubu1204", "branch":"master" },
+                { "os":"ubu1004", "branch":"master" },
+                { "os":"osx107",  "branch":"master" }
+            ]
+        },
+        {
+            "name" : "zlib",
+            "repourl" : "git://github.com/madler/zlib.git",
+            "builders" : [
+                { "os":"win7",    "branch":"master" },
+                { "os":"ubu1204", "branch":"master" },
+                { "os":"ubu1004", "branch":"master" },
+                { "os":"osx107",  "branch":"master" }
+            ]
+        }
+    ]
+}

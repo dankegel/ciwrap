@@ -1,0 +1,21 @@
+{
+    "slaves" : [
+        { "name":"pyflakes-e8400",          "os":"win7"    },
+        { "name":"pyflakes-i7",             "os":"ubu1204" },
+        { "name":"pyflakes-dkegel-desktop", "os":"ubu1004" },
+        { "name":"pyflakes-dans-mac",       "os":"osx107"  }
+    ],
+
+    "projects" : [
+        {
+            "name" : "pyflakes",
+            "repourl" : "git://github.com/buildbot/pyflakes.git",
+            "builders" : [
+                { "os":"win7",    "branch":"master" },
+                { "os":"ubu1204", "branch":"master" },
+                { "os":"ubu1004", "branch":"master" },
+                { "os":"osx107",  "branch":"master" }
+            ]
+        }
+    ]
+}

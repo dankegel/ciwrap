@@ -1,7 +1,0 @@
-{
-    "slaves" : [
-        { "name":"big.master-e8400",    "os":"win7"    },
-        { "name":"big.master-i7",       "os":"ubu1204" },
-        { "name":"big.master-dans-mac", "os":"osx107"  }
-    ]
-}

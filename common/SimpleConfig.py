@@ -16,9 +16,8 @@ from buildbot.changes.gitpoller import GitPoller
 
 class SimpleConfig(dict):
     """A buildbot master with a web status page and a 'force build' button,
-    which reads slaves from 'slaves.json',
-    port number offsets from 'slot.txt',
-    and secrets from a json file (usually ~/myconfig.json).
+    which reads public configuration from 'master.json'
+    and secrets from a different json file (default ~/myconfig.json).
 
     """
 
@@ -29,12 +28,7 @@ class SimpleConfig(dict):
                  *args, **kwargs):
         dict.__init__(self,*args,**kwargs)
 
-        ####### PORT NUMBERS
-        # It's hard to keep port numbers straight for multiple projects,
-        # so let's assign each project a slot number,
-        # and use 8010 + slotnum for the http port,
-        # 9010 + slotnum for the slave port,
-        # etc.  bslave.sh duplicates this code.
+        # Find the directory containing this .py file
         thisfile = __file__
         thisfile = thisfile.replace(".pyc", ".py")
         try:
@@ -42,7 +36,18 @@ class SimpleConfig(dict):
         except:
             pass
         dir = os.path.join(os.path.dirname(thisfile), "..", name)
+        print "cwd is %s" % os.getcwd()
         print "dir is %s" % dir
+
+        masterjson = json.load(open(os.path.join(dir, "master.json")))
+
+        ####### PORT NUMBERS
+        # It's hard to keep port numbers straight for multiple projects,
+        # so let's assign each project a slot number,
+        # and use 8010 + slotnum for the http port,
+        # 9010 + slotnum for the slave port,
+        # etc.  bslave.sh duplicates this code.
+        # FIXME: get slot from masterjson
         slot = int(open(os.path.join(dir, "slot.txt")).readline())
         self.__http_port = 8010 + slot
         self['slavePortnum'] = 9010 + slot
@@ -86,8 +91,9 @@ class SimpleConfig(dict):
         # installation's html.WebStatus home page (linked to the
         # 'titleURL') and is embedded in the title of the waterfall HTML page.
 
-        self['title'] = name;
-        self['titleURL'] = homepage;
+        # FIXME: get name and homepage from masterjson
+        self['title'] = name
+        self['titleURL'] = homepage
 
         # the 'buildbotURL' string should point to the location where the buildbot's
         # internal web server (usually the html.WebStatus page) is visible. This
@@ -100,14 +106,12 @@ class SimpleConfig(dict):
         ####### SLAVES
         self._os2slaves = {}
         self['slaves'] = []
-        print "cwd is %s" % os.getcwd()
-        sf = json.load(open(os.path.join(dir, "slaves.json")))
-        slaveconfigs = sf["slaves"];
+        slaveconfigs = masterjson["slaves"]
         for slaveconfig in slaveconfigs:
             sname = slaveconfig["name"].encode('ascii','ignore')
             sos = slaveconfig["os"].encode('ascii','ignore')
             # Restrict to a single build at a time because our buildshims
-            # typically use sudo apt-get, etc.
+            # typically assume they have total control of machine, and use sudo apt-get, etc. with abandon.
             s = BuildSlave(sname, self.slavepass, max_builds=1)
             self['slaves'].append(s)
             if sos not in self._os2slaves:
@@ -119,11 +123,14 @@ class SimpleConfig(dict):
         self['builders'] = []
         self['schedulers'] = []
 
+        # Righty-o, wire 'em all up
+        for project in masterjson["projects"]:
+            self.addSimpleProject(project["name"], project["repourl"], project["builders"])
 
 
-    def addSimpleProject(self, name, repourl, builderconfigfile):
-        """Add a project which builds when the source changes or when Force is clicked,
-        gets its list of branches and kinds of slaves to use from the given json file.
+    def addSimpleProject(self, name, repourl, builderconfigs):
+        """Private.
+        Add a project which builds when the source changes or when Force is clicked.
 
         """
 
@@ -136,11 +143,9 @@ class SimpleConfig(dict):
             factory.addStep(ShellCommand(command=["../../srclink/" + name + "/buildshim", step], description=step))
 
         ####### BUILDERS AND SCHEDULERS
-        # Get list of builders from config file, see what OS they want to
+        # For each builder in config file, see what OS they want to
         # run on, and assign them to suitable slaves.
         # Give each builder a normal and a force scheduler.
-        config = json.load(open(os.path.expanduser(builderconfigfile)))
-        builderconfigs = config["builders"];
         branchnames = []
         for builderconfig in builderconfigs:
             sbranch = builderconfig["branch"].encode('ascii','ignore')
