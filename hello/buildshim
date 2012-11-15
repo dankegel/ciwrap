@@ -32,31 +32,46 @@ echo "This is $pkgname version $version, building on $_os"
 set -e
 set -x
 
+install_fpm() {
+    if ! test -x /usr/local/bin/fpm
+    then
+        sudo apt-get install -y build-essential libopenssl-ruby ruby-dev rubygems
+        # Need to set umask, or /var/lib/gems won't be world-readable
+        # See https://bugs.launchpad.net/ubuntu/+source/rubygems/+bug/1023836
+        umask 022
+        sudo gem install fpm
+        if ! test -x /usr/local/bin/fpm
+        then
+            if ! test -x /var/lib/gems/*/bin/fpm
+            then
+                echo fpm failed to install
+                exit 1
+            fi
+            sudo ln -s /var/lib/gems/*/bin/fpm /usr/local/bin/fpm
+        fi
+    fi
+}
+
+uninstall_fpm() {
+    if test -x /usr/local/bin/fpm
+    then
+        sudo gem uninstall fpm -x
+        sudo rm -f /usr/local/bin/fpm
+    fi
+}
+
 do_install_deps() {
     case $_os in
     cygwin)
         apt-cyg install gettext-devel
         ;;
-    ubu*)
+    ubu10*)
+        sudo apt-get -y install texinfo help2man
+        install_fpm
+        ;;
+    ubu12*)
         sudo apt-get -y install autopoint texinfo
-
-        if ! test -x /usr/local/bin/fpm
-        then
-            sudo apt-get install -y build-essential libopenssl-ruby ruby-dev rubygems
-            # Need to set umask, or /var/lib/gems won't be world-readable
-            # See https://bugs.launchpad.net/ubuntu/+source/rubygems/+bug/1023836
-            umask 022
-            sudo gem install fpm
-            if ! test -x /usr/local/bin/fpm
-            then
-                if ! test -x /var/lib/gems/*/bin/fpm
-                then
-                    echo fpm failed to install
-                    exit 1
-                fi
-                sudo ln -s /var/lib/gems/*/bin/fpm /usr/local/bin/fpm
-            fi
-        fi
+        install_fpm
         ;;
     osx*)
         sudo port install texinfo
@@ -66,7 +81,13 @@ do_install_deps() {
 }
 
 do_configure() {
-    ./bootstrap
+    if test -f ./bootstrap 
+    then
+        ./bootstrap
+    elif test -f autogen.sh
+    then
+        ./autogen.sh
+    fi
     ./configure
 }
 
@@ -110,13 +131,12 @@ do_package() {
 
 do_uninstall_deps() {
     case $_os in
-    ubu*)
-        if test -x /usr/local/bin/fpm
-        then
-            sudo gem uninstall fpm -x
-            sudo rm -f /usr/local/bin/fpm
-        fi
-
+    ubu10*)
+        uninstall_fpm
+        sudo apt-get autoremove -y --purge texinfo
+        ;;
+    ubu12*)
+        uninstall_fpm
         sudo apt-get autoremove -y --purge autopoint texinfo
         ;;
     esac
