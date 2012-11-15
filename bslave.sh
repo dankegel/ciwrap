@@ -247,6 +247,27 @@ init_slave() {
 # Run service in foreground with no extra processes (e.g. subshells) in memory
 do_run() {
     parse_project $1
+
+    case $_os in
+    ubu10*)
+        # ubuntu 10.04's upstart does not log job output, so let's do that here if we're running under upstart
+        if test "$UPSTART_JOB"
+        then
+            if ! test -d /var/log/upstart
+            then
+                sudo mkdir /var/log/upstart
+            fi
+            LOGFILE=/var/log/upstart/buildslave-$_os-$projname.log
+            if ! test -w $LOGFILE
+            then
+                sudo touch $LOGFILE
+                sudo chown $BUILDUSER $LOGFILE
+            fi
+            exec >> $LOGFILE 2>&1
+        fi
+        ;;
+    esac
+
     CCACHE_DIR="$VIRTUAL_ENV/$slavename/ccache.dir"
     if ! test -d $CCACHE_DIR
     then
@@ -286,6 +307,19 @@ install_service() {
     parse_project $1
 
     case $_os in
+    ubu10*)
+    (
+        cat  <<_EOF_
+description "ciwrap buildbot slave startup for $projname"
+author "Dan Kegel <dank@kegel.com>"
+
+start on (started network-interface or started network-manager or started networking)
+stop on (stopping network-interface or stopping network-manager or stopping networking)
+respawn
+exec su -s /bin/sh -c 'exec "\$0" "\$@"' $BUILDUSER -- sh $SRC/bslave.sh run $projname
+_EOF_
+    ) | sudo tee /etc/init/buildslave-$_os-$projname.conf
+        ;;
     ubu*)
     (
         cat  <<_EOF_
