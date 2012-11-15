@@ -1,7 +1,0 @@
-{
-    "builders" : [
-        { "os":"win7",    "branch":"master" },
-        { "os":"ubu1204", "branch":"master" },
-        { "os":"osx107",  "branch":"master" }
-    ]
-}
