@@ -224,7 +224,7 @@ parse_project() {
 }
 
 sanity_check() {
-    dups=`cat */slot.txt | sort | uniq -c | awk '$1 > 1 {print $2}'`
+    dups=`find . -name slot.txt | xargs cat | sort | uniq -c | awk '$1 > 1 {print $2}'`
     if test "$dups"
     then
         abort "Slots have duplicate values: $dups"
