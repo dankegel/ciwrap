@@ -145,7 +145,8 @@ install_slave() {
     sudo lxc-start -o /tmp/$HOSTNAME.log -n $HOSTNAME -d
     sleep 1
     cat /tmp/$HOSTNAME.log
-    lxc-ssh $HOSTNAME sh $SRC/fix-dns.sh
+    # This interferes with resolving the lxc host's hostname?
+    #lxc-ssh $HOSTNAME sh $SRC/fix-dns.sh
     lxc-ssh $HOSTNAME sudo apt-get -y update
     lxc-ssh $HOSTNAME sudo locale-gen en_US.UTF-8
     if test "$preload_deps" = "1"
