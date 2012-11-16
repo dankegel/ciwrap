@@ -137,7 +137,7 @@ install_prereqs() {
     if ! gcc --version > /dev/null 2>&1
     then
         case $_os in
-        ubu*) sudo apt-get gcc ;;
+        ubu*) sudo apt-get install -y gcc ;;
         cygwin) apt-cyg install gcc gcc4 ;;
         osx*) sudo port install gcc46 ;;
         esac
