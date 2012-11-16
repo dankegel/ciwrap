@@ -145,8 +145,9 @@ class SimpleConfig(dict):
         ####### BUILDERS AND SCHEDULERS
         # For each builder in config file, see what OS they want to
         # run on, and assign them to suitable slaves.
-        # Give each builder a normal and a force scheduler.
+        # Also create a force scheduler that knows about all the builders.
         branchnames = []
+        buildernames = []
         for builderconfig in builderconfigs:
             sbranch = builderconfig["branch"].encode('ascii','ignore')
             if sbranch not in branchnames:
@@ -166,13 +167,18 @@ class SimpleConfig(dict):
                     change_filter=filter.ChangeFilter(branch=sbranch),
                     treeStableTimer=None,
                     builderNames=[buildername]))
+            buildernames.append(buildername)
 
-            self['schedulers'].append(
-                ForceScheduler(
-                    name=buildername+"-force",
-                    builderNames=[buildername],
-                    branch=FixedParameter(name="branch", default=sbranch),
-                ))
+        self['schedulers'].append(
+            ForceScheduler(
+                name=name+"-force",
+                builderNames=buildernames,
+                branch=FixedParameter(name="branch", default=""),
+                revision=FixedParameter(name="revision", default=""),
+                repository=FixedParameter(name="repository", default=""),
+                project=FixedParameter(name="project", default=""),
+                properties=[],
+            ))
 
         ####### CHANGESOURCES
         # It's a git git git git git world
