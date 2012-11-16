@@ -38,7 +38,6 @@ detect_os() {
     esac
 }
 set -x
-set -e
 
 prod=$1
 case "$prod" in
