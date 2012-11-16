@@ -125,7 +125,7 @@ class SimpleConfig(dict):
 
         # Righty-o, wire 'em all up
         for project in masterjson["projects"]:
-            self.addSimpleProject(project["name"], project["repourl"], project["builders"])
+            self.addSimpleProject(project["name"].encode('ascii','ignore'), project["repourl"].encode('ascii','ignore'), project["builders"])
 
 
     def addSimpleProject(self, name, repourl, builderconfigs):
