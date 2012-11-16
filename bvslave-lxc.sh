@@ -135,6 +135,10 @@ install_slave() {
     # (Later, must also specify --bdir $HOME to lxc-start-ephemeral.)
     sudo lxc-create -t $GUEST_DISTRO -n $HOSTNAME -- $verop $GUEST_VERSION --bindhome $LOGNAME
 
+    # Security, seshmurity.  bslave.sh would have done this later, but 
+    # do it straigt off to avoid four sudo prompts for every machine we set up.
+    sudo lxc-start -n $HOSTNAME -- sh $SRC/badd-sudoer.sh --I-do-not-care-about-security $BUILDUSER
+
     # Install slaves on virtual machine, making use of the fact that $HOME is
     # mounted for this same user inside the container, and hoping that $TOP is in $HOME.
     # Need working network, so can't just do 'lxc-start cmd'

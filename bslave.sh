@@ -117,7 +117,7 @@ install_prereqs() {
         echo "============================="
         echo "EVIL WARNING: giving user $BUILDUSER the ability to install/remove packages without password"
         # Needed to run 'install_prereqs/uninstall_prereqs' build steps for each project.
-        echo "$BUILDUSER ALL=(ALL) NOPASSWD: ALL" | sudo tee -a /etc/sudoers
+        sudo sh $SRC/badd-sudoer.sh --I-do-not-care-about-security $BUILDUSER
         echo "============================="
     fi
 
