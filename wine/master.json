@@ -1,0 +1,23 @@
+{
+    "slaves" : [
+        { "os":"osx107",  "name":"wine-dans-mac"       },
+        { "os":"ubu1004", "name":"wine-dkegel-desktop" },
+        { "os":"ubu1204", "name":"wine-e7300"          },
+        { "os":"ubu1204", "name":"wine-i7"             },
+        { "os":"win7",    "name":"wine-e8400"          }
+    ],
+
+    "projects" : [
+        {
+            "name" : "wine",
+            "repourl" : "git://source.winehq.org/git/wine.git",
+            "repotype" : "git",
+            "builders" : [
+                { "os":"win7",    "branch":"master" },
+                { "os":"ubu1204", "branch":"master" },
+                { "os":"ubu1004", "branch":"master" },
+                { "os":"osx107",  "branch":"master" }
+            ]
+        }
+    ]
+}

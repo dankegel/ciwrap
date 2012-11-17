@@ -1,0 +1,78 @@
+#!/bin/sh
+
+pkgname=wine
+
+usage() {
+cat << _EOF_
+Buildshim for $pkgname
+Usage:
+    ./buildshim install_deps
+    ./buildshim configure
+    ./buildshim compile
+    ./buildshim check
+    ./buildshim package
+    ./buildshim uninstall_deps
+_EOF_
+}
+
+set -e
+set -x
+
+SRCFILE="`readlink $0 2>/dev/null || echo $0`"
+SRC="`dirname $SRCFILE`"
+SRC="`cd $SRC; pwd`"
+. $SRC/../bs_funcs.sh
+
+_os=`bs_detect_os`
+version=`bs_get_version_git`
+bs_platform_workarounds
+bs_set_CC
+ncores=`bs_detect_ncores`
+parallel="-j$ncores -l$ncores"
+
+echo "This is $pkgname version $version, building on $_os"
+
+do_install_deps() {
+    case $_os in
+    cygwin)
+        ;;
+    ubu10*)
+        ;;
+    ubu12*)
+        ;;
+    osx*)
+        ;;
+    *) bs_abort "Unsupported OS";;
+    esac
+}
+
+do_configure() {
+    ./configure
+}
+
+do_compile() {
+    make $parallel
+}
+
+do_check() {
+    make check
+}
+
+do_package() {
+    echo "not supported yet"
+}
+
+do_uninstall_deps() {
+    echo "not supported yet"
+}
+
+case $1 in
+install_deps)   do_install_deps ;;
+configure)      do_configure ;;
+compile)        do_compile ;;
+check)          do_check ;;
+package)        do_package ;;
+uninstall_deps) do_uninstall_deps ;;
+steps)          echo "install_deps configure compile check package uninstall_deps";;
+*)              echo "Unknown step $1"; usage;;
+esac
