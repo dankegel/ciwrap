@@ -101,22 +101,34 @@ bs_get_version_debian_changelog() {
     head -n 1 debian/changelog | grep $pkgname | sed 's/.*(//;s/).*//;s/-[0-9]*$//'
 }
 
+# Echo the version number of this product as given by git
+# This works for projects that name branches like kernel.org, Wine, or Node do
+bs_get_version_git() {
+    # git describe --long's output looks like
+    # name-COUNT-CHECKSUM
+    # Strip off the -CHECKSUM, then the -COUNT, then (hail mary) strip off any non-numeric prefix.
+    d1=`git describe --long`
+    d2=`echo $d1 | sed 's/-[a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9]$//'`
+    d3=`echo $d2 | sed 's/-[0-9]*$//'`
+    d4=`echo $d3 | sed 's/^[^0-9]*//'`
+    case "$d4" in
+    "") bs_abort "can't parse version number from git describe --long's output $d1";;
+    esac
+    echo $d4
+}
+
 # Echo the change number since the start of this branch as given by git
 bs_get_git_changenum() {
-    # git describe's output looks like
-    #    debian/1.10-2
-    # or
-    #    release-2.0.36-5318-ge7bc160
-    # first strip off the checksum field if present, then all but the last.
-    d=`git describe`
-    case $d in
-    *-????????)
-        echo $d | sed 's/-[a-z0-9]*$//;s/^.*-//'
-        ;;
-    *)
-        echo $d | sed 's/^.*-//'
-        ;;
+    # git describe --long's output looks like
+    # name-COUNT-CHECKSUM
+    # First strip off the checksum field, then the name.
+    d1=`git describe --long`
+    d2=`echo $d1 | sed 's/-[a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9]$//'`
+    d3=`echo $d1 | sed 's/^.*-//'`
+    case "$d3" in
+    "") bs_abort "can't parse change number from git describe --long's output $d1";;
     esac
+    echo $d3
 }
 
 # Apply workarounds commonly needed on non-linux platforms
