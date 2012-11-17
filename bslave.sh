@@ -133,7 +133,7 @@ install_prereqs() {
             esac
         fi
     done
- 
+
     if ! gcc --version > /dev/null 2>&1
     then
         case $_os in
@@ -158,7 +158,7 @@ install_prereqs() {
         case $_os in
         ubu*) sudo apt-get install -y python-dev python-virtualenv ;;
         cygwin) easy_install pip virtualenv ;;   # README already had you install python
-        osx*)   
+        osx*)
             sudo port install python27 py27-virtualenv
             sudo port select --set python python27
             ;;

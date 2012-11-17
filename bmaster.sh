@@ -110,7 +110,7 @@ install_prereqs() {
         case $_os in
         ubu*)   sudo apt-get install -y python-dev python-virtualenv ;;
         cygwin) easy_install pip virtualenv ;;   # README already had you install python
-        osx*)   
+        osx*)
             sudo port install python27 py27-virtualenv
             sudo port select --set python python27
             ;;
