@@ -7,12 +7,15 @@ from buildbot.schedulers.forcesched import ForceScheduler, FixedParameter, Strin
 from buildbot.status import html
 from buildbot.status.web import authz, auth
 from buildbot.steps.shell import ShellCommand
-from buildbot.steps.source.git import Git
 from twisted.python import log
 import json
 import os
 
+from buildbot.steps.source.git import Git
 from buildbot.changes.gitpoller import GitPoller
+
+from buildbot.steps.source.mercurial import Mercurial
+from buildbot.changes.hgpoller import HgPoller
 
 class SimpleConfig(dict):
     """A buildbot master with a web status page and a 'force build' button,
@@ -125,17 +128,26 @@ class SimpleConfig(dict):
 
         # Righty-o, wire 'em all up
         for project in masterjson["projects"]:
-            self.addSimpleProject(project["name"].encode('ascii','ignore'), project["repourl"].encode('ascii','ignore'), project["builders"])
+            self.addSimpleProject(project)
 
 
-    def addSimpleProject(self, name, repourl, builderconfigs):
+    def addSimpleProject(self, project):
         """Private.
         Add a project which builds when the source changes or when Force is clicked.
 
         """
+        name = project["name"].encode('ascii','ignore')
+        repourl = project["repourl"].encode('ascii','ignore')
+        builderconfigs = project["builders"]
+
+        repotype = 'git'
+        if "repotype" in project:
+            repotype = project["repotype"]
 
         ####### FACTORIES
-        # This fails with git-1.8 and up unless you specify the branch, so do this down lower where we know the branch
+        # This fails with git-1.8 and up unless you specify the branch, so use one factory per builder
+        # in buildbot-0.8.7 (though a fix was committed later to the 0.8.7 branch)
+        # FIXME: use Interpolate("... %(src::branch)s ...") so we can share factories again
         # FIXME: get list of steps from buildshim here
         #factory = BuildFactory()
         #factory.addStep(Git(repourl=repourl, mode='full', method='copy'))
@@ -152,15 +164,24 @@ class SimpleConfig(dict):
             sbranch = builderconfig["branch"].encode('ascii','ignore')
             if sbranch not in branchnames:
                 branchnames.append(sbranch)
+
             sos = builderconfig["os"].encode('ascii','ignore')
             osbranch = sos+'-'+sbranch
             buildername = name+'-'+osbranch
 
             factory = BuildFactory()
-            factory.addStep(Git(repourl=repourl, mode='full', method='copy', branch=sbranch))
-            # FIXME: add code to abort if output of 'git branch' doesn't equal sbranch?
-            # (But what about try builders that take a git url?)
-            factory.addStep(ShellCommand(command=["git", "branch"], description="git branch"))
+
+            # FIXME: move vcs interface into helper function(s)
+            if repotype == 'git':
+                factory.addStep(Git(repourl=repourl, mode='full', method='copy', branch=sbranch))
+                # FIXME: add code to abort if output of 'git branch' doesn't equal sbranch?
+                # (But what about try builders that take a git url?)
+                factory.addStep(ShellCommand(command=["git", "branch"], description="git branch"))
+            elif repotype == 'hg':
+                factory.addStep(Mercurial(repourl=repourl, mode="full", method="fresh"))
+            else:
+                abort("unknown repotype %s" % repotype)
+
             for step in ["patch", "install_deps", "configure", "compile", "check", "package", "upload", "uninstall_deps"]:
                 factory.addStep(ShellCommand(command=["../../srclink/" + name + "/buildshim", step], description=step))
 
@@ -189,6 +210,15 @@ class SimpleConfig(dict):
             ))
 
         ####### CHANGESOURCES
-        # It's a git git git git git world
-        self['change_source'].append(
-            GitPoller(repourl,  branches=branchnames, workdir='gitpoller-workdir-'+name, pollinterval=300))
+        if repotype == 'git':
+            self['change_source'].append(
+                GitPoller(repourl, branches=branchnames,
+                          workdir='gitpoller-workdir-'+name,
+                          pollinterval=300))
+        elif repotype == 'hg':
+            for branchname in branchnames:
+                self['change_source'].append(
+                    HgPoller(repourl, branch=branchname,
+                          workdir='hgpoller-workdir-'+name))
+        else:
+            abort("unknown repotype %s" % repotype)

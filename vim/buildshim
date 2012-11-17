@@ -1,0 +1,88 @@
+#!/bin/sh
+
+pkgname=vim
+
+usage() {
+cat << _EOF_
+Buildshim for $pkgname
+Usage:
+    ./buildshim install_deps
+    ./buildshim configure
+    ./buildshim compile
+    ./buildshim check
+    ./buildshim package
+    ./buildshim uninstall_deps
+_EOF_
+}
+
+set -e
+set -x
+
+SRCFILE="`readlink $0 2>/dev/null || echo $0`"
+SRC="`dirname $SRCFILE`"
+SRC="`cd $SRC; pwd`"
+. $SRC/../bs_funcs.sh
+
+get_version_vim() {
+    version_major=`awk '/MAJOR =/ {print $3}' Makefile`
+    version_minor=`awk '/MINOR =/ {print $3}' Makefile`
+    echo $version_major.$version_minor
+}
+
+_os=`bs_detect_os`
+version=`get_version_vim`
+bs_platform_workarounds
+# Can't use CC="gcc ccache", since that causes error "auto/configure: line 3973: ccache gcc: command not found"
+ncores=`bs_detect_ncores`
+parallel="-j$ncores -l$ncores"
+
+echo "This is $pkgname version $version, building on $_os"
+
+
+do_install_deps() {
+    case $_os in
+    cygwin)
+        ;;
+    ubu10*)
+        ;;
+    ubu12*)
+        ;;
+    osx*)
+        ;;
+    *) bs_abort "Unsupported OS";;
+    esac
+}
+
+do_configure() {
+    cd src
+    ./configure
+}
+
+do_compile() {
+    cd src
+    make $parallel
+}
+
+do_check() {
+    cd src
+    make test
+}
+
+do_package() {
+    echo "not supported yet"
+}
+
+do_uninstall_deps() {
+    echo "not supported yet"
+}
+
+case $1 in
+install_deps)   do_install_deps ;;
+configure)      do_configure ;;
+compile)        do_compile ;;
+check)          do_check ;;
+package)        do_package ;;
+uninstall_deps) do_uninstall_deps ;;
+steps)          echo "install_deps configure compile check package uninstall_deps";;
+*)              echo "Unknown step $1"; usage;;
+esac

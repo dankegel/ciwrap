@@ -1,0 +1,23 @@
+{
+    "slaves" : [
+        { "os":"osx107",  "name":"vim-dans-mac"       },
+        { "os":"ubu1004", "name":"vim-dkegel-desktop" },
+        { "os":"ubu1204", "name":"vim-e7300"          },
+        { "os":"ubu1204", "name":"vim-i7"             },
+        { "os":"win7",    "name":"vim-e8400"          }
+    ],
+
+    "projects" : [
+        {
+            "name" : "vim",
+            "repourl" : "https://code.google.com/p/vim/",
+            "repotype" : "hg",
+            "builders" : [
+                { "os":"win7",    "branch":"default" },
+                { "os":"ubu1204", "branch":"default" },
+                { "os":"ubu1004", "branch":"default" },
+                { "os":"osx107",  "branch":"default" }
+            ]
+        }
+    ]
+}
