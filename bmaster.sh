@@ -188,7 +188,6 @@ init_master() {
     cd $TOP/sandbox
     . bin/activate
     orig_mcfg=$SRC/$arg/master.cfg
-    orig_jcfg=$SRC/$arg/slaves.json
 
     test -f "$orig_mcfg" || abort "no such file $orig_mcfg"
     dir=`dirname $orig_mcfg`
@@ -201,7 +200,6 @@ init_master() {
     buildbot create-master -r $VIRTUAL_ENV/$m
     # Symlink to original versions in git of anything we need to override
     ln -sf $orig_mcfg $VIRTUAL_ENV/$m/master.cfg
-    ln -sf $orig_jcfg $VIRTUAL_ENV/$m/slaves.json
     ln -sf $SRC/$arg $VIRTUAL_ENV/$m/srclink
     # repetitive, but that's ok
     mkdir -p $VIRTUAL_ENV/common
@@ -232,6 +230,9 @@ do_run() {
     mcfg=$VIRTUAL_ENV/$arg/master.cfg
     test -f "$mcfg" || abort "no such file $mcfg"
     dir=`dirname $mcfg`
+
+    # If you want to use contrib scripts, this might come in handy
+    #PYTHONPATH=$TOP/sandbox/buildbot-0.8.7/contrib:$PYTHONPATH
 
     case $_os in
     ubu10*)
