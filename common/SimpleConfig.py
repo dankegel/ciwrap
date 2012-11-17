@@ -135,12 +135,12 @@ class SimpleConfig(dict):
         """
 
         ####### FACTORIES
+        # This fails with git-1.8 and up unless you specify the branch, so do this down lower where we know the branch
         # FIXME: get list of steps from buildshim here
-        factory = BuildFactory()
-        # check out the source
-        factory.addStep(Git(repourl=repourl, mode='full', method='copy'))
-        for step in ["install_deps", "configure", "compile", "check", "package", "uninstall_deps"]:
-            factory.addStep(ShellCommand(command=["../../srclink/" + name + "/buildshim", step], description=step))
+        #factory = BuildFactory()
+        #factory.addStep(Git(repourl=repourl, mode='full', method='copy'))
+        #for step in ["install_deps", "configure", "compile", "check", "package", "uninstall_deps"]:
+        #    factory.addStep(ShellCommand(command=["../../srclink/" + name + "/buildshim", step], description=step))
 
         ####### BUILDERS AND SCHEDULERS
         # For each builder in config file, see what OS they want to
@@ -155,6 +155,14 @@ class SimpleConfig(dict):
             sos = builderconfig["os"].encode('ascii','ignore')
             osbranch = sos+'-'+sbranch
             buildername = name+'-'+osbranch
+
+            factory = BuildFactory()
+            factory.addStep(Git(repourl=repourl, mode='full', method='copy', branch=sbranch))
+            # FIXME: add code to abort if output of 'git branch' doesn't equal sbranch?
+            # (But what about try builders that take a git url?)
+            factory.addStep(ShellCommand(command=["git", "branch"], description="git branch"))
+            for step in ["patch", "install_deps", "configure", "compile", "check", "package", "upload", "uninstall_deps"]:
+                factory.addStep(ShellCommand(command=["../../srclink/" + name + "/buildshim", step], description=step))
 
             self['builders'].append(
                 BuilderConfig(name=buildername,
