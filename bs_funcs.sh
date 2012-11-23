@@ -124,7 +124,7 @@ bs_get_git_changenum() {
     # First strip off the checksum field, then the name.
     d1=`git describe --long`
     d2=`echo $d1 | sed 's/-[a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9]$//'`
-    d3=`echo $d1 | sed 's/^.*-//'`
+    d3=`echo $d2 | sed 's/^.*-//'`
     case "$d3" in
     "") bs_abort "can't parse change number from git describe --long's output $d1";;
     esac
