@@ -22,12 +22,18 @@ SRC="`cd $SRC; pwd`"
 
 _os=`bs_detect_os`
 version=`bs_get_version_configure_ac`
+version_git=`bs_get_version_git`
+changenum_git=`bs_get_git_changenum`
+if test $version != $version_git
+then
+    bs_abort "configure.ac version $version != git version $version_git"
+fi
 bs_platform_workarounds
 bs_set_CC
 ncores=`bs_detect_ncores`
 parallel="-j$ncores -l$ncores"
 
-echo "This is $pkgname version $version, building on $_os"
+echo "This is $pkgname version $version changenum $changenum_git, building on $_os"
 
 set -e
 set -x
@@ -109,6 +115,7 @@ do_package() {
     DESTDIR=`cd $DESTDIR; pwd`
     make install DESTDIR=$DESTDIR
 
+    suffix=`bs_os_pkg_suffix $_os`
     case $_os in
     cygwin) echo "Here we would generate a cygwin package, or something :-)"
         ;;
@@ -119,9 +126,9 @@ do_package() {
         # You may also want to use the LSB Application Checker to check for
         # portability problems.
         rm -f ${pkgname}*.deb || true
-        fpm -s dir -t deb -n $pkgname -v $version -C $DESTDIR usr
+        fpm -s dir -t deb -n $pkgname -v $version --iteration $changenum_git$suffix -C $DESTDIR usr
         rm -f ${pkgname}*.rpm || true
-        fpm -s dir -t rpm -n $pkgname -v $version -C $DESTDIR usr
+        fpm -s dir -t rpm -n $pkgname -v $version --iteration $changenum_git$suffix -C $DESTDIR usr
         rm -rf $DESTDIR
         ;;
     osx*) echo "Here we would generate a dmg, or something :-)"

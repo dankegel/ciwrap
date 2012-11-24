@@ -32,6 +32,33 @@ bs_detect_os() {
     esac
 }
 
+# We want to be able to build each of our packages
+# for all supported distros and versions.
+# But we want .deb's and .rpm's to have unique names
+# to reduce user confusion.  Also, Debian pools mix together
+# packages for all distro versions.
+# Therefore package filenames have to include the distro 
+# name/version to avoid clashing.
+# Happily, there are existing conventions for how to do this.
+#
+# In Debian, +codenameNN is appended to the debian_revision field
+# for security releases.  We're not doing security releases, but hey.
+# See http://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
+# and http://stackoverflow.com/questions/1831188/
+#
+# In RPM-land, it's common to tag packages with a distribution 
+# name by appending a %{dist} code in the Release field.
+# See http://fedoraproject.org/wiki/Packaging:DistTag
+
+bs_os_pkg_suffix() {
+    case $1 in
+    ubu1004) echo "+lucid";;
+    ubu1204) echo "+precise";;
+    fc5) echo ".fc5";;
+    *) bs_abort "os_pkg_suffix: unknown os '$_os'";;
+    esac
+}
+
 # Echo the number of CPU cores
 bs_detect_ncores() {
     case $_os in
