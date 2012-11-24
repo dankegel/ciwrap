@@ -136,7 +136,7 @@ install_buildbot() {
     then
         # Use this if it's up to date enough for you, and you don't plan on making any source changes.
         easy_install buildbot
-    elif true
+    elif false
     then
         # Here's how to install from a source tarball.
         wget -c http://buildbot.googlecode.com/files/buildbot-0.8.7.tar.gz
@@ -144,7 +144,7 @@ install_buildbot() {
         cd buildbot-0.8.7
         # Add support for oneshot slaves (for our LXC setup)
         # http://permalink.gmane.org/gmane.comp.python.buildbot.devel/8518
-        patch -p2 < $SRC/lxc-local/oneshot.patch
+        patch -p2 < $SRC/buildbot-local/oneshot.patch
         python setup.py install
         cd ..
     else
@@ -153,10 +153,12 @@ install_buildbot() {
         # and seems to be how buildbot developers test their code
         test -d buildbot-git || git clone https://github.com/buildbot/buildbot.git buildbot-git
         cd buildbot-git
-        #git checkout buildbot-0.8.7
+        git checkout buildbot-0.8.7
         # Add support for oneshot slaves (for our LXC setup)
         # http://permalink.gmane.org/gmane.comp.python.buildbot.devel/8518
-        patch -p1 < $SRC/lxc-local/oneshot.patch
+        patch -p1 < $SRC/buildbot-local/oneshot.patch
+        # Make HgPoller not start from first change at dawn of time
+        patch -p1 < $SRC/buildbot-local/hgpoller.patch
         pip install -emaster
         cd ..
     fi

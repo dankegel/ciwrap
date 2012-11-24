@@ -1,0 +1,13 @@
+diff --git a/master/buildbot/changes/hgpoller.py b/master/buildbot/changes/hgpoller.py
+index 2000f0a..50e7d4f 100644
+--- a/master/buildbot/changes/hgpoller.py
++++ b/master/buildbot/changes/hgpoller.py
+@@ -246,7 +246,7 @@ class HgPoller(base.PollingChangeSource):
+             return
+         if current is None:
+             # we could have used current = -1 convention as well (as hg does)
+-            revrange = '0:%d' % head
++            revrange = '%d:%d' % (head, head)
+         else:
+             revrange = '%d:%s' % (current + 1, head)
+ 
