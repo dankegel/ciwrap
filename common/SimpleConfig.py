@@ -178,7 +178,7 @@ class SimpleConfig(dict):
                 # (But what about try builders that take a git url?)
                 factory.addStep(ShellCommand(command=["git", "branch"], description="git branch"))
             elif repotype == 'hg':
-                factory.addStep(Mercurial(repourl=repourl, mode="full", method="fresh"))
+                factory.addStep(Mercurial(repourl=repourl, mode="full", method="fresh", branchType="inrepo"))
             else:
                 abort("unknown repotype %s" % repotype)
 
@@ -219,6 +219,7 @@ class SimpleConfig(dict):
             for branchname in branchnames:
                 self['change_source'].append(
                     HgPoller(repourl, branch=branchname,
+                          pollInterval=300,
                           workdir='hgpoller-workdir-'+name))
         else:
             abort("unknown repotype %s" % repotype)
