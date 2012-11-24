@@ -1,0 +1,7 @@
+Origin: repobot
+Label: repobot
+Codename: precise
+Architectures: i386 amd64 source
+Components: main non-free
+Description: repobot apt repository
+SignWith: yes
