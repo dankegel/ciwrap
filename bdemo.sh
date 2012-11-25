@@ -7,7 +7,7 @@
 set -e
 set -x
 
-projects="pyflakes big.master"
+projects="pyflakes hellozlib"
 
 install_and_start()
 {

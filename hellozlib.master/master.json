@@ -1,9 +1,9 @@
 {
     "slaves" : [
-        { "name":"big.master-e8400",          "os":"win7"    },
-        { "name":"big.master-i7",             "os":"ubu1204" },
-        { "name":"big.master-dkegel-desktop", "os":"ubu1004" },
-        { "name":"big.master-dans-mac",       "os":"osx107"  }
+        { "name":"hellozlib.master-e8400",          "os":"win7"    },
+        { "name":"hellozlib.master-i7",             "os":"ubu1204" },
+        { "name":"hellozlib.master-dkegel-desktop", "os":"ubu1004" },
+        { "name":"hellozlib.master-dans-mac",       "os":"osx107"  }
     ],
 
     "projects" : [
