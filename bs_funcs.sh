@@ -120,7 +120,7 @@ bs_get_version_cmake() {
 # Echo the version number of this product as given by debian/changelog,
 # (with the change number stripped off if present).
 bs_get_version_debian_changelog() {
-    test -f debian/changelog || abort "Couldn't open debian/changelog"
+    test -f debian/changelog || bs_abort "Couldn't open debian/changelog"
     # First line should be something like
     # foobar (5.6.7) unstable; urgency=low
     # or
