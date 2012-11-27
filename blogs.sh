@@ -52,7 +52,7 @@ esac
 _os=`detect_os`
 case $_os in
 ubu*)
-    sudo chmod 644 /var/log/upstart/build*
+    sudo chmod 644 /var/log/upstart/build* || true
     logs="/var/log/upstart/buildmaster-$prod.log \
          /var/log/upstart/buildslave-*-$prod.log \
          $HOME/master-state/*/$prod/twistd.log \
