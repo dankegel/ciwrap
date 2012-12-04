@@ -71,12 +71,14 @@ do_configure() {
         cmd /c $WSRC\\bconfigure.bat
         ;;
     ubu*)
+        test -d btmp && rm -rf btmp
         mkdir btmp
         cd btmp
         cmake ..
         cd ..
         ;;
     osx*)
+        test -d btmp && rm -rf btmp
         mkdir btmp
         cd btmp
         cmake -G Xcode ..
