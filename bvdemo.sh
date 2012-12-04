@@ -6,9 +6,9 @@
 set -e
 set -x
 
-projects="pyflakes"
+projects="hellozlib.master"
 
-guest="ubu1204"
+guests="ubu1004 ubu1204"
 
 install_and_start()
 {
@@ -17,24 +17,40 @@ install_and_start()
         echo "Please create directory /data/lxc on a volume with several gigabytes of free space"
         exit 1
     fi
+    if ! test -f ~/myconfig.json
+    then
+        abort "Can't initialize if you haven't put your secrets file at ~/myconfig.json"
+    fi
 
     sh bmaster.sh install
-    sh bvslave-lxc.sh $guest install
+    for guest in $guests
+    do
+        sh bvslave-lxc.sh $guest install
+    done
+    for proj in $projects
+    do
+        for guest in $guests
+        do
+            sh bvslave-lxc.sh $guest init $proj
+        done
+    done
 
     for proj in $projects
     do
-        # Could loop over guest OS's here
-        sh bvslave-lxc.sh $guest init $proj
         sh bmaster.sh init $proj
     done
 
     sh bservice.sh start
 
+    # It seems to take the slaves 30 seconds to wake up and get their DNS working
+    # FIXME
+    sleep 30
+
     # Eyeball the bots' output to see if there are any obvious errors
     for proj in $projects
     do
         echo =========== Last ten lines of logs for $proj ============
-        sleep 1
+        sleep 3
         sh blogs.sh $proj tail
     done
 }
@@ -45,10 +61,16 @@ stop_and_uninstall()
     for proj in $projects
     do
         sh bmaster.sh uninit $proj || true
-        sh bvslave-lxc.sh $guest uninit $proj || true
+        for guest in $guests
+        do
+            sh bvslave-lxc.sh $guest uninit $proj || true
+        done
     done
     sh bmaster.sh uninstall || true
-    sh bvslave-lxc.sh $guest uninstall || true
+    for guest in $guests
+    do
+        sh bvslave-lxc.sh $guest uninstall || true
+    done
 }
 
 case $1 in
