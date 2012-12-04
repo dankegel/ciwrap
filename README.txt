@@ -319,6 +319,35 @@ The zlib example uses Visual C++ Express 2010, so before trying that, do:
 If that little sanity check passes, you should be able to start the zlib
 buildslave and control it from the buildmaster.
 
+====== TROUBLESHOOTING BUILDS ======
+
+The clean way to debug things is to tweak the buildshim (possibly to add
+a patch), then use the web interface to restart the whole job.
+
+Before you do that, though, you might want to test out the fix by 
+logging into the slave, cd'ing to the job's work directory, tweaking the 
+source tree, and rerunning just the failed part manually, e.g.
+  cd ~/slave-state/cygwin/foobar-win7-bb01/foobar-win7-master/build
+  ~/ciwrap-git/foobar/buildshim check
+(If the buildshim has a working uninstall_deps step, you might also
+need to run its install_deps step first.)
+
+This is easy if you're not using LXC or Cygwin. 
+
+With Cygwin, since bslave.sh doesn't run jobs as the buildbot user (yet),
+you might need to put those two lines into a shell script ~/check.sh,
+then install it as a service, e.g.
+ cygrunsrv -i mycheck -p /bin/sh -a /home/buildbot/mycheck.sh --type=manual
+and then start and watch it like this:
+ cygrunsrv --stop mycheck; cygrunsrv --start mycheck; tail -f /var/log/mycheck.log
+Then you can reasonably quickly iterate, making changes to the source
+tree and then rerunning that command.
+
+With LXC, ssh'ing to the slave is only slightly annoying; to find the name of
+the slave machines, do 'lxc-ls', then do e.g.
+  cd ~/ciwrap-git
+  ./lxc-local/lxc-ssh big-long-hostname-from-lxc-ls
+
 ====== COPYING ======
 
 ciwrap is free software: you can redistribute it and/or modify it under
