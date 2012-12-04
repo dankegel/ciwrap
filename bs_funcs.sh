@@ -81,24 +81,30 @@ bs_get_version_configure_ac() {
     # Reformat so there is exactly one line per macro call
     # Grab just the call to AC_INIT
     # delete everything up to and including the open paren
-    # print out the second [parameter],
-    # and remove brackets, commas, and spaces
+    # remove any [quoting], hope it wasn't needed
+    # turn commas into spaces
+    # print out second word
 
     FILE=configure.ac
     test -f $FILE || FILE=configure.in
     test -f $FILE || bs_abort "Could not find configure.ac or configure.in"
-    WORD=`head -n 20 $FILE |
+    WORD=`head -n 50 $FILE |
         sed 's/dnl.*//' |
         tr '\012)' ' \012' |
-        grep AC_INIT |
-        sed 's/.*(//' |
-        sed 's/\[[^]]*\]//' |
-        sed 's/\].*//' |
-        tr -d '][, '`
+        grep AC_INIT | 
+        sed 's/^.*(//' |
+        tr -d '][' |
+        tr , ' ' |
+        awk '{print $2}'`
     case "$WORD" in
     ""|" ") bs_abort "bs_get_version_configure_ac failed to parse version from AC_INIT in $FILE";;
     *) echo $WORD;;
     esac
+}
+
+# Echo the version number of this project as given by a particular .pc file
+bs_get_version_pc() {
+    awk '/Version:/ {print $2}' $1
 }
 
 # Echo the version number of this project as given by CMakeLists.txt
@@ -149,7 +155,12 @@ bs_get_git_changenum() {
     # git describe --long's output looks like
     # name-COUNT-CHECKSUM
     # First strip off the checksum field, then the name.
-    d1=`git describe --long`
+    if ! d1=`git describe --long 2> /dev/null`
+    then
+        # No releases!  Just count changes since epoch.
+        git log --oneline | wc -l
+        return 0
+    fi
     d2=`echo $d1 | sed 's/-[a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9]$//'`
     d3=`echo $d2 | sed 's/^.*-//'`
     case "$d3" in
@@ -185,7 +196,7 @@ bs_set_CC() {
         ;;
     ubu*)
         # If ccache is configured, use it.
-        if ccache -V && test -d "$CCACHE_DIR"
+        if ccache -V > /dev/null && test -d "$CCACHE_DIR"
         then
             CC="ccache gcc"
             CXX="ccache g++"
