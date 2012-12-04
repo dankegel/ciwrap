@@ -33,7 +33,7 @@ bs_set_CC
 ncores=`bs_detect_ncores`
 parallel="-j$ncores -l$ncores"
 
-echo "This is $pkgname version $version changenum $changenum_git, building on $_os"
+echo "This is $pkgname version $version changenum $changenum_git, building on $_os" >&2
 
 set -e
 set -x

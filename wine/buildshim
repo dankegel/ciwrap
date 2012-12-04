@@ -30,7 +30,7 @@ bs_set_CC
 ncores=`bs_detect_ncores`
 parallel="-j$ncores -l$ncores"
 
-echo "This is $pkgname version $version, building on $_os"
+echo "This is $pkgname version $version, building on $_os" >&2
 
 do_install_deps() {
     case $_os in
