@@ -46,6 +46,8 @@ set -e
 SRC=`dirname $0`
 # Get an absolute directory (for the case where it's run with 'sh bslave.sh')
 SRC=`cd $SRC; pwd`
+# The code assumes in at least one place that we're in the directory containing the script :-(
+cd "$SRC"
 
 if test "$LOGNAME" = ""
 then
