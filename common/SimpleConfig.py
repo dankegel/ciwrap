@@ -74,7 +74,7 @@ class SimpleConfig(dict):
             gracefulShutdown = False,
             forceBuild = 'auth',
             forceAllBuilds = True,
-            pingBuilder = False,
+            pingBuilder = True,
             stopBuild = True,
             stopAllBuilds = False,
             cancelPendingBuild = True,
