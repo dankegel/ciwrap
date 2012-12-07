@@ -151,7 +151,7 @@ bs_get_version_git() {
 }
 
 # Echo the change number since the start of this branch as given by git
-bs_get_git_changenum() {
+bs_get_changenum_git() {
     # git describe --long's output looks like
     # name-COUNT-CHECKSUM
     # First strip off the checksum field, then the name.

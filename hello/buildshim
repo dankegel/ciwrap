@@ -23,7 +23,7 @@ SRC="`cd $SRC; pwd`"
 _os=`bs_detect_os`
 version=`bs_get_version_configure_ac`
 version_git=`bs_get_version_git`
-changenum_git=`bs_get_git_changenum`
+changenum_git=`bs_get_changenum_git`
 if test $version != $version_git
 then
     bs_abort "configure.ac version $version != git version $version_git"
