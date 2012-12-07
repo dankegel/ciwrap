@@ -158,7 +158,7 @@ bs_get_git_changenum() {
     if ! d1=`git describe --long 2> /dev/null`
     then
         # No releases!  Just count changes since epoch.
-        git log --oneline | wc -l
+        git log --oneline | wc -l | sed 's/^[[:space:]]*//'
         return 0
     fi
     d2=`echo $d1 | sed 's/-[a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9][a-z0-9]$//'`
