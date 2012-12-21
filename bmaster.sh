@@ -116,6 +116,13 @@ install_prereqs() {
             ;;
         esac
     fi
+    if ! wget --version > /dev/null 2>&1
+    then
+        case $_os in
+        ubu*)   sudo apt-get install -y wget ;;
+        osx*)   sudo port install wget ;;
+        esac
+    fi
 }
 
 install_buildbot() {
