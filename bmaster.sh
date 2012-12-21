@@ -166,6 +166,8 @@ install_buildbot() {
         patch -p1 < $SRC/buildbot-local/oneshot.patch
         # Make HgPoller not start from first change at dawn of time
         patch -p1 < $SRC/buildbot-local/hgpoller.patch
+        # pin on a good version of SQLAlchemy
+        patch -p1 < $SRC/buildbot-local/sql.patch
         pip install -emaster
         cd ..
     fi
