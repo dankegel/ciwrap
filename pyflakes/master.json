@@ -3,6 +3,7 @@
         { "name":"pyflakes-e8400",          "os":"win7"    },
         { "name":"pyflakes-i7",             "os":"ubu1204" },
         { "name":"pyflakes-dkegel-desktop", "os":"ubu1004" },
+        { "name":"pyflakes-dan-kegels-macbook-pro", "os":"ox107" },
         { "name":"pyflakes-dans-mac",       "os":"osx107"  }
     ],
 
