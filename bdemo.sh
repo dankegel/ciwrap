@@ -11,6 +11,10 @@ projects="pyflakes hellozlib"
 
 install_and_start()
 {
+    if ! test -f ~/myconfig.json
+    then
+        abort "Can't initialize if you haven't put your secrets file at ~/myconfig.json"
+    fi
     sh bmaster.sh install
     sh bslave.sh install
 
