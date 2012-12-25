@@ -80,8 +80,9 @@ class SimpleConfig(dict):
             stopAllBuilds = False,
             cancelPendingBuild = True,
         )
+        # Need order_console_by_time for git or hg or any vcs that doesn't have numbered changesets
         self['status'].append(
-            html.WebStatus(http_port=self.__http_port, authz=authz_cfg))
+            html.WebStatus(http_port=self.__http_port, authz=authz_cfg, order_console_by_time=True))
 
         ####### DB URL
         self['db'] = {
