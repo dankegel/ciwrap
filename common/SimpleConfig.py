@@ -2,6 +2,7 @@ from buildbot.buildslave import BuildSlave
 from buildbot.changes import filter
 from buildbot.config import BuilderConfig
 from buildbot.process.factory import BuildFactory
+from buildbot.process.properties import WithProperties
 from buildbot.schedulers.basic import SingleBranchScheduler
 from buildbot.schedulers.forcesched import ForceScheduler, FixedParameter, StringParameter
 from buildbot.status import html
@@ -113,9 +114,17 @@ class SimpleConfig(dict):
         for slaveconfig in slaveconfigs:
             sname = slaveconfig["name"].encode('ascii','ignore')
             sos = slaveconfig["os"].encode('ascii','ignore')
+            # Turn on our 'one build and then exit' feature if user asks for it
+            props = { 'oneshot' : False }
+            if "oneshot" in slaveconfig:
+                oneshot = slaveconfig["oneshot"].encode('ascii','ignore')
+                if oneshot == "True":
+                    props['oneshot'] = True
+                else:
+                    exit("oneshot property must be absent or True")
             # Restrict to a single build at a time because our buildshims
             # typically assume they have total control of machine, and use sudo apt-get, etc. with abandon.
-            s = BuildSlave(sname, self.slavepass, max_builds=1)
+            s = BuildSlave(sname, self.slavepass, max_builds=1, properties = props)
             self['slaves'].append(s)
             if sos not in self._os2slaves:
                 self._os2slaves[sos] = []

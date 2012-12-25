@@ -1,14 +1,14 @@
 diff --git a/master/buildbot/process/build.py b/master/buildbot/process/build.py
-index 3477444..374afd1 100644
+index 3477444..000999e 100644
 --- a/master/buildbot/process/build.py
 +++ b/master/buildbot/process/build.py
-@@ -246,6 +246,9 @@ class Build(properties.PropertiesMixin):
-         def _release_slave(res, slave, bs):
-             self.slavebuilder.buildFinished()
-             slave.updateSlaveStatus(buildFinished=bs)
-+            if (slave.properties.getProperty('oneshot', False)):
-+                log.msg("oneshot slave being released, shutting down.")
-+                slave.shutdown()
-             return res
-         d.addCallback(_release_slave, self.slavebuilder.slave, build_status)
+@@ -270,6 +270,9 @@ class Build(properties.PropertiesMixin):
  
+         self.build_status.buildStarted(self)
+         self.acquireLocks().addCallback(self._startBuild_2)
++        if (self.slavebuilder.slave.properties.getProperty('oneshot', False)):
++            log.msg("oneshot slave started, requesting graceful shutdown.")
++            self.slavebuilder.slave.slave_status.setGraceful(True)
+         return d
+ 
+     def acquireLocks(self, res=None):

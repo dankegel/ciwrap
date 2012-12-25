@@ -10,10 +10,7 @@
         <key>GroupName</key>
         <string>daemon</string>
         <key>KeepAlive</key>
-        <dict>
-                <key>SuccessfulExit</key>
-                <false/>
-        </dict>
+        <true/>
         <key>Label</key>
         <string>net.buildbot.slave.$PROJNAME</string>
         <key>ProgramArguments</key>
