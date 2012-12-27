@@ -1,6 +1,7 @@
 #!/bin/sh
 # Copyright Dan Kegel 2012
 # See COPYING for details
+# Note: hangs when running in background, see https://bugs.launchpad.net/ubuntu/+source/apt/+bug/1088023
 
 usage() {
 cat << _EOF_
@@ -305,8 +306,8 @@ _EOF_
 description "ciwrap buildbot master startup for $projname"
 author "Dan Kegel <dank@kegel.com>"
 
-start on (started network-interface or started network-manager or started networking)
-stop on (stopping network-interface or stopping network-manager or stopping networking)
+start on (started static-network-up or started network-manager or started networking)
+stop on (stopping static-network-up or stopping network-manager or stopping networking)
 respawn
 console log
 setuid $BUILDUSER
