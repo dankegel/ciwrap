@@ -198,7 +198,8 @@ class SimpleConfig(dict):
             self['builders'].append(
                 BuilderConfig(name=buildername,
                   slavenames=self._os2slaves[sos],
-                  factory=factory))
+                  factory=factory,
+                  category=buildername))
 
             self['schedulers'].append(
                 SingleBranchScheduler(

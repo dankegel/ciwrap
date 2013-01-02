@@ -171,6 +171,8 @@ install_buildbot() {
         # pin on a good version of SQLAlchemy
         # fixed in trunk
         patch -p1 < $SRC/buildbot-local/sql.patch || true
+        # Allow searching categories by regular expressions
+        patch -p1 < $SRC/buildbot-local/category_re.patch
         pip install -emaster
         cd ..
     fi
