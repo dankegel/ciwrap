@@ -1,0 +1,32 @@
+diff --git a/master/buildbot/status/web/waterfall.py b/master/buildbot/status/web/waterfall.py
+index 681c576..b826c7c 100644
+--- a/master/buildbot/status/web/waterfall.py
++++ b/master/buildbot/status/web/waterfall.py
+@@ -21,6 +21,7 @@ import urllib
+ 
+ import time, locale
+ import operator
++import re
+ 
+ from buildbot import interfaces, util
+ from buildbot.status import builder, buildstep, build
+@@ -453,6 +454,19 @@ class WaterfallStatusResource(HtmlResource):
+         if showCategories:
+             builders = [b for b in builders if b.category in showCategories]
+ 
++        # If the URL has category_re= arguments, use them as a filter:
++        # only show builders whose category matches one of the given regexps.
++        showCategoryREs = request.args.get("category_re", [])
++        if showCategoryREs:
++            # FIXME: is there a more Python-y way to do this?
++            def matchany(cREs, str):
++                for cRE in cREs:
++                    if cRE.match(str):
++                       return True
++                return False
++            showCatREs = map(lambda str: re.compile(str), showCategoryREs)
++            builders = [b for b in builders if matchany(showCatREs, b.category)]
++
+         # If the URL has the failures_only=true argument, we remove all the
+         # builders that are not currently red or won't be turning red at the end
+         # of their current run.
